@@ -21,8 +21,7 @@ public final class SinglePostContract {
         public static final String COLUMN_NAME_ID = "id";
         public static final String COLUMN_NAME_TITLE = "title";
         public static final String COLUMN_NAME_COMMENTS = "comments";
-        public static final String COLUMN_NAME_UPVOTES = "upvotes";
-        public static final String COLUMN_NAME_DOWNVOTES = "downvotes";
+        public static final String COLUMN_NAME_VOTECOUNT = "votes";
         public static final String COLUMN_NAME_IMAGE_LINK = "image";
     }
 
@@ -32,8 +31,7 @@ public final class SinglePostContract {
                     PostTableEntry.COLUMN_NAME_ID + " TEXT," +
                     PostTableEntry.COLUMN_NAME_TITLE + " TEXT," +
                     PostTableEntry.COLUMN_NAME_COMMENTS + " INTEGER," +
-                    PostTableEntry.COLUMN_NAME_UPVOTES + " INTEGER," +
-                    PostTableEntry.COLUMN_NAME_DOWNVOTES + " INTEGER," +
+                    PostTableEntry.COLUMN_NAME_VOTECOUNT + " INTEGER," +
                     PostTableEntry.COLUMN_NAME_IMAGE_LINK + " TEXT" +
                     ")";
 

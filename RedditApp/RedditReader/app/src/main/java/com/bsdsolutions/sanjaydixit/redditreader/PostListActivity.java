@@ -1,10 +1,17 @@
 package com.bsdsolutions.sanjaydixit.redditreader;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -20,6 +27,8 @@ import android.widget.Toast;
 
 
 import com.bsdsolutions.sanjaydixit.redditreader.content.PostItemList;
+import com.bsdsolutions.sanjaydixit.redditreader.data.PostSyncAdapter;
+import com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
@@ -29,7 +38,8 @@ import net.dean.jraw.auth.NoSuchTokenException;
 import net.dean.jraw.http.oauth.Credentials;
 import net.dean.jraw.http.oauth.OAuthException;
 
-import java.util.List;
+import static android.R.attr.data;
+import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.CONTENT_AUTHORITY;
 
 /**
  * An activity representing a list of Posts. This activity
@@ -39,15 +49,16 @@ import java.util.List;
  * item details. On tablets, the activity presents the list of items and
  * item details side-by-side using two vertical panes.
  */
-public class PostListActivity extends AppCompatActivity {
+public class PostListActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     /**
      * Whether or not the activity is in two-pane mode, i.e. running on a tablet
      * device.
      */
     private boolean mTwoPane;
-
+    private static final int LOADER_ID = 1;
     public static String TAG = "SanjayRedditReader";
+    private SimpleItemRecyclerViewAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,12 +75,15 @@ public class PostListActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
+                PostSyncAdapter.syncNow(getApplicationContext(), CONTENT_AUTHORITY, null);
             }
         });
 
         View recyclerView = findViewById(R.id.post_list);
         assert recyclerView != null;
         setupRecyclerView((RecyclerView) recyclerView);
+
+        getSupportLoaderManager().initLoader(1 , null , this);   // 1 is LOADER_ID
 
         if (findViewById(R.id.post_detail_container) != null) {
             // The detail container view will be present only in the
@@ -126,18 +140,46 @@ public class PostListActivity extends AppCompatActivity {
     public void login() { startActivity(new Intent(this, LoginActivity.class)); }
 
     private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
-        recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(this, PostItemList.ITEMS));
+        mAdapter = new SimpleItemRecyclerViewAdapter(this, null);
+        recyclerView.setAdapter(mAdapter);
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        switch(id) {
+            case LOADER_ID:
+                return new CursorLoader(PostListActivity.this, SinglePostContract.POST_TABLE_PATH,null,null,null,null);
+        }
+        return null;
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        mAdapter.changeCursor(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mAdapter.changeCursor(null);
+    }
+
+    private Account createDummyAccount() {
+        Account dummyAccount = new Account(getString(R.string.app_name), PostSyncAdapter.ACCOUNT_TYPE);  // Acc , Acc Type
+        AccountManager accountManager = (AccountManager) getSystemService(ACCOUNT_SERVICE);
+        accountManager.addAccountExplicitly(dummyAccount , null , null);
+
+        return dummyAccount;
     }
 
     public class SimpleItemRecyclerViewAdapter
             extends RecyclerView.Adapter<SimpleItemRecyclerViewAdapter.ViewHolder> {
 
-        private final List<PostItemList.SinglePost> mValues;
         private Context mContext = null;
+        private Cursor mCursor = null;
 
-        public SimpleItemRecyclerViewAdapter( Context context, List<PostItemList.SinglePost> items) {
+        public SimpleItemRecyclerViewAdapter( Context context, Cursor cursor) {
             mContext = context;
-            mValues = items;
+            mCursor = cursor;
         }
 
         @Override
@@ -149,13 +191,16 @@ public class PostListActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(final ViewHolder holder, int position) {
-            holder.mItem = mValues.get(position);
-            holder.mTitleView.setText(mValues.get(position).title);
-            holder.mCommentsView.setText(String.valueOf(mValues.get(position).commentCount));
-            holder.mUpvoteView.setText(String.valueOf(mValues.get(position).upVoteCount));
-            holder.mDownvoteView.setText(String.valueOf(mValues.get(position).downVoteCount));
+            PostItemList.SinglePost post = (PostItemList.SinglePost)getItem(position);
+            if(post == null)
+                return;
+            holder.mItem = post;
+            holder.mTitleView.setText(post.title);
+            holder.mCommentsView.setText(String.valueOf(post.commentCount));
+            holder.mUpvoteView.setText(String.valueOf(post.voteCount));
+            holder.mDownvoteView.setText("");
             Picasso.with(mContext).setLoggingEnabled(true);
-            Picasso.with(mContext).load(mValues.get(position).image).into(holder.mPostImageView, new Callback() {
+            Picasso.with(mContext).load(post.image).into(holder.mPostImageView, new Callback() {
                 @Override
                 public void onSuccess() {
                 }
@@ -190,7 +235,37 @@ public class PostListActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return mValues.size();
+            return (mCursor == null) ? 0 : mCursor.getCount();
+        }
+
+        public void changeCursor(Cursor newCursor){
+            if (mCursor == newCursor){
+                return;
+            }
+
+            Cursor prev = mCursor;
+            mCursor = newCursor;
+
+            if (mCursor != null){
+                notifyDataSetChanged();
+            }
+
+            if (prev != null){
+                prev.close();
+            }
+        }
+
+        private Object getItem(int position){
+            mCursor.moveToPosition(position);
+            if(mCursor == null)
+                return null;
+            String id = mCursor.getString(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_ID));
+            String title = mCursor.getString(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_TITLE));
+            String image = mCursor.getString(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_IMAGE_LINK));
+            int commentCount = mCursor.getInt(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_COMMENTS));
+            int voteCount = mCursor.getInt(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_VOTECOUNT));
+            PostItemList.SinglePost post = new PostItemList.SinglePost(id,title,image,commentCount,voteCount);
+            return post;
         }
 
         public class ViewHolder extends RecyclerView.ViewHolder {
@@ -211,6 +286,7 @@ public class PostListActivity extends AppCompatActivity {
                 mDownvoteView = (TextView) view.findViewById(R.id.post_downvote_count);
                 mPostImageView = (ImageView) view.findViewById(R.id.post_image);
             }
+
 
             @Override
             public String toString() {

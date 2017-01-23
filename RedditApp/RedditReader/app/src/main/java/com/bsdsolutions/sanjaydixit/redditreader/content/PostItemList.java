@@ -38,7 +38,7 @@ public class PostItemList {
     }
 
     private static SinglePost createDummyItem(int position) {
-        return new SinglePost(String.valueOf(position), "Item " + position, "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Android_robot.svg/2000px-Android_robot.svg.png", 100, 100, 100);
+        return new SinglePost(String.valueOf(position), "Item " + position, "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Android_robot.svg/2000px-Android_robot.svg.png", 100, 100);
     }
 
     private static String makeDetails(int position) {
@@ -58,21 +58,19 @@ public class PostItemList {
         public final String title;
         public final String image;
         public final int commentCount;
-        public final int upVoteCount;
-        public final int downVoteCount;
+        public final int voteCount;
 
-        public SinglePost(String id, String title, String image, int commentCount, int upVoteCount, int downVoteCount) {
+        public SinglePost(String id, String title, String image, int commentCount, int voteCount) {
             this.id = id;
             this.title = title;
             this.image = image;
             this.commentCount = commentCount;
-            this.upVoteCount = upVoteCount;
-            this.downVoteCount = downVoteCount;
+            this.voteCount = voteCount;
         }
 
         @Override
         public String toString() {
-            return title + " has " + String.valueOf(commentCount) + "comments and " + String.valueOf(upVoteCount) + " upvotes and " + String.valueOf(downVoteCount) + " downvotes.";
+            return title + " has " + String.valueOf(commentCount) + "comments and " + String.valueOf(voteCount) + " votes.";
         }
     }
 }

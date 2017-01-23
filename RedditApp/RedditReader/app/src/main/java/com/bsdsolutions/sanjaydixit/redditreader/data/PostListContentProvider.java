@@ -10,10 +10,12 @@ import android.net.Uri;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import static android.R.attr.value;
+import com.bsdsolutions.sanjaydixit.redditreader.PostListActivity;
+
 import static com.bsdsolutions.sanjaydixit.redditreader.data.PostReaderDbHelper.DATABASE_NAME;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.CONTENT_AUTHORITY;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PATH_POSTS;
+import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_ID;
 
 /**
  * Created by sanjaydixit on 23/01/17.
@@ -51,7 +53,9 @@ public class PostListContentProvider extends ContentProvider {
         db = mDbHelper.getWritableDatabase();
         switch(sUriMatcher.match(uri)) {
             case 1:
-                return db.query(DATABASE_NAME,strings,s,strings1,null,null,s1);
+                Cursor result = db.query(DATABASE_NAME,strings,s,strings1,null,null,s1);
+                result.setNotificationUri(getContext().getContentResolver(), uri);
+                return result;
         }
         return null;
     }
@@ -73,14 +77,44 @@ public class PostListContentProvider extends ContentProvider {
         long _id;
         switch(sUriMatcher.match(uri)) {
             case 1:
-            db = mDbHelper.getWritableDatabase();
+                db = mDbHelper.getWritableDatabase();
 
-            _id = db.insert(SinglePostContract.PostTableEntry.TABLE_NAME, null, contentValues);
-            if (_id > 0) {
-                result = SinglePostContract.buildPostPathUri(_id);
-            } else {
-                throw new SQLException("Failed to insert row into " + uri);
-            }
+                // Filter results WHERE "title" = 'My Title'
+                String[] projection = {
+                        SinglePostContract.PostTableEntry._ID,
+                        COLUMN_NAME_ID,
+                };
+                String selection = COLUMN_NAME_ID + " = ?";
+                String id = contentValues.getAsString(COLUMN_NAME_ID);
+                String[] selectionArgs = {id};
+
+// How you want the results sorted in the resulting Cursor
+                String sortOrder =
+                        COLUMN_NAME_ID + " DESC";
+
+                Cursor tempQueryResult = db.query(
+                        SinglePostContract.PostTableEntry.TABLE_NAME,  // The table to query
+                        projection,                               // The columns to return
+                        selection,                                // The columns for the WHERE clause
+                        selectionArgs,                            // The values for the WHERE clause
+                        null,                                     // don't group the rows
+                        null,                                     // don't filter by row groups
+                        sortOrder                                 // The sort order
+                );
+
+                if (tempQueryResult != null && tempQueryResult.getCount() > 0) {
+                    update(uri, contentValues, selection, selectionArgs);
+                    _id = tempQueryResult.getColumnIndexOrThrow(COLUMN_NAME_ID);
+                    Log.d(PostListActivity.TAG,"Updating at " + uri.toString() + "  : " + _id);
+                } else {
+                    _id = db.insert(SinglePostContract.PostTableEntry.TABLE_NAME, null, contentValues);
+                    Log.d(PostListActivity.TAG,"Inserting at " + uri.toString() + "  : " + _id);
+                }
+                if (_id > 0) {
+                    result = SinglePostContract.buildPostPathUri(_id);
+                } else {
+                    throw new SQLException("Failed to insert row into " + uri);
+                }
                 getContext().getContentResolver().notifyChange(uri, null);
                 break;
             default:

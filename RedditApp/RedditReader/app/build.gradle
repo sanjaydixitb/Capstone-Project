@@ -17,6 +17,12 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    buildTypes.each {
+        it.buildConfigField 'String', 'REDDIT_APP_OWNER', '"sanjaydixitb"'
+        it.buildConfigField 'String', 'REDDIT_CLIENT_ID', '"uG_Vg6QWmDmVzg"'
+        it.buildConfigField 'String', 'REDDIT_APP_SECRET', '"gko_LXELoV07ZBNUXrvWZfzE3al"'
+        it.buildConfigField 'String', 'REDDIT_REDIRECT_URL', '"https://github.com/sanjaydixitb/Capstone-Project"'
+    }
 
     packagingOptions {
         pickFirst  'META-INF/license.txt'
