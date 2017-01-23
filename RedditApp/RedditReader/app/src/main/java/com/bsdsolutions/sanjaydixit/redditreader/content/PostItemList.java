@@ -1,5 +1,8 @@
 package com.bsdsolutions.sanjaydixit.redditreader.content;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -53,7 +56,7 @@ public class PostItemList {
     /**
      * A dummy item representing a piece of content.
      */
-    public static class SinglePost {
+    public static class SinglePost implements Parcelable {
         public final String id;
         public final String title;
         public final String image;
@@ -68,9 +71,39 @@ public class PostItemList {
             this.voteCount = voteCount;
         }
 
-        @Override
-        public String toString() {
-            return title + " has " + String.valueOf(commentCount) + "comments and " + String.valueOf(voteCount) + " votes.";
+        protected SinglePost(Parcel in) {
+            id = in.readString();
+            title = in.readString();
+            image = in.readString();
+            commentCount = in.readInt();
+            voteCount = in.readInt();
         }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            dest.writeString(id);
+            dest.writeString(title);
+            dest.writeString(image);
+            dest.writeInt(commentCount);
+            dest.writeInt(voteCount);
+        }
+
+        @SuppressWarnings("unused")
+        public static final Parcelable.Creator<SinglePost> CREATOR = new Parcelable.Creator<SinglePost>() {
+            @Override
+            public SinglePost createFromParcel(Parcel in) {
+                return new SinglePost(in);
+            }
+
+            @Override
+            public SinglePost[] newArray(int size) {
+                return new SinglePost[size];
+            }
+        };
     }
 }

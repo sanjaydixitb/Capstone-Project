@@ -12,6 +12,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -59,6 +60,7 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
     private static final int LOADER_ID = 1;
     public static String TAG = "SanjayRedditReader";
     private SimpleItemRecyclerViewAdapter mAdapter;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,16 +70,6 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbar.setTitle(getTitle());
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-                PostSyncAdapter.syncNow(getApplicationContext(), CONTENT_AUTHORITY, null);
-            }
-        });
 
         View recyclerView = findViewById(R.id.post_list);
         assert recyclerView != null;
@@ -92,6 +84,20 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
             // activity should be in two-pane mode.
             mTwoPane = true;
         }
+
+        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swiperefresh);
+
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                // Refresh items
+                refreshItems();
+            }
+        });
+    }
+
+    void refreshItems() {
+        PostSyncAdapter.syncNow(getApplicationContext(), CONTENT_AUTHORITY, null);
     }
 
     @Override
@@ -156,19 +162,13 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         mAdapter.changeCursor(data);
+        mSwipeRefreshLayout.setRefreshing(false);
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
         mAdapter.changeCursor(null);
-    }
-
-    private Account createDummyAccount() {
-        Account dummyAccount = new Account(getString(R.string.app_name), PostSyncAdapter.ACCOUNT_TYPE);  // Acc , Acc Type
-        AccountManager accountManager = (AccountManager) getSystemService(ACCOUNT_SERVICE);
-        accountManager.addAccountExplicitly(dummyAccount , null , null);
-
-        return dummyAccount;
+        mSwipeRefreshLayout.setRefreshing(false);
     }
 
     public class SimpleItemRecyclerViewAdapter
@@ -216,7 +216,7 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
                 public void onClick(View v) {
                     if (mTwoPane) {
                         Bundle arguments = new Bundle();
-                        arguments.putString(PostDetailFragment.ARG_ITEM_ID, holder.mItem.id);
+                        arguments.putParcelable(PostDetailFragment.ARG_ITEM, holder.mItem);
                         PostDetailFragment fragment = new PostDetailFragment();
                         fragment.setArguments(arguments);
                         getSupportFragmentManager().beginTransaction()
@@ -225,7 +225,7 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
                     } else {
                         Context context = v.getContext();
                         Intent intent = new Intent(context, PostDetailActivity.class);
-                        intent.putExtra(PostDetailFragment.ARG_ITEM_ID, holder.mItem.id);
+                        intent.putExtra(PostDetailFragment.ARG_ITEM, holder.mItem);
 
                         context.startActivity(intent);
                     }

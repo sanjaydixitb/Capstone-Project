@@ -53,8 +53,8 @@ public class PostDetailActivity extends AppCompatActivity {
             // Create the detail fragment and add it to the activity
             // using a fragment transaction.
             Bundle arguments = new Bundle();
-            arguments.putString(PostDetailFragment.ARG_ITEM_ID,
-                    getIntent().getStringExtra(PostDetailFragment.ARG_ITEM_ID));
+            arguments.putParcelable(PostDetailFragment.ARG_ITEM,
+                    getIntent().getParcelableExtra(PostDetailFragment.ARG_ITEM));
             PostDetailFragment fragment = new PostDetailFragment();
             fragment.setArguments(arguments);
             getSupportFragmentManager().beginTransaction()
