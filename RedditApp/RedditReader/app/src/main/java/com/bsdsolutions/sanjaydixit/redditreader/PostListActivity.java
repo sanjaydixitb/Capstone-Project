@@ -164,6 +164,16 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
                 break;
             case NEED_REFRESH:
                 refreshAccessTokenAsync();
+                Intent intent1 = getIntent();
+                ArrayList<PostItemList.SinglePost> postList = intent1.getParcelableArrayListExtra(INTENT_PARCELABLE_EXTRA_KEY);
+                if(postList != null && postList.size() > 0) {
+                    //TODO: there's got to be a better way to do this.
+                    Intent intent = new Intent(getApplicationContext(), PostDetailActivity.class);
+                    intent.putExtra(PostDetailFragment.ARG_ITEM, postList.get(0));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    getApplicationContext().startActivity(intent);
+                    intent1.removeExtra(INTENT_PARCELABLE_EXTRA_KEY);
+                }
                 break;
         }
 
