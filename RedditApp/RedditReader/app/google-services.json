@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "75050340766",
+    "project_id": "firebase-redditreader"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:75050340766:android:eec299a73fb96107",
+        "android_client_info": {
+          "package_name": "com.bsdsolutions.sanjaydixit.redditreader"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDpr6Gs2WSiri2wTGx0P0vHO1PKIuLbv_8"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 2,
+          "analytics_property": {
+            "tracking_id": "UA-90770645-1"
+          }
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

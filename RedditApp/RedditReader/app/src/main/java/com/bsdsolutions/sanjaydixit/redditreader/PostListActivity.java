@@ -1,8 +1,5 @@
 package com.bsdsolutions.sanjaydixit.redditreader;
 
-import android.accounts.Account;
-import android.accounts.AccountManager;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -16,10 +13,11 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -30,6 +28,10 @@ import android.widget.Toast;
 import com.bsdsolutions.sanjaydixit.redditreader.content.PostItemList;
 import com.bsdsolutions.sanjaydixit.redditreader.data.PostSyncAdapter;
 import com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdSize;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
@@ -39,7 +41,6 @@ import net.dean.jraw.auth.NoSuchTokenException;
 import net.dean.jraw.http.oauth.Credentials;
 import net.dean.jraw.http.oauth.OAuthException;
 
-import static android.R.attr.data;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.CONTENT_AUTHORITY;
 
 /**
@@ -94,10 +95,43 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
                 refreshItems();
             }
         });
+
+        MobileAds.initialize(getApplicationContext(), getResources().getString(R.string.banner_ad_unit_id));
+
+        AdView mAdView = (AdView) findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder()
+                .addTestDevice(AdRequest.DEVICE_ID_EMULATOR)        // All emulators
+                .addTestDevice("635482F931F8668B1EE277A5CA92796E").build();
+        mAdView.loadAd(adRequest);
+
     }
 
-    void refreshItems() {
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_activity_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.settings:
+                displaySubredditSelectorActivity();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    public void refreshItems() {
         PostSyncAdapter.syncNow(getApplicationContext(), CONTENT_AUTHORITY, null);
+    }
+
+    public void displaySubredditSelectorActivity() {
+        Intent intent = new Intent(this, SubredditSelector.class);
+        startActivity(intent);
     }
 
     @Override
@@ -140,7 +174,7 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
     }
 
     public void loadPosts() {
-
+        PostSyncAdapter.syncNow(getApplicationContext(),CONTENT_AUTHORITY,null);
     }
 
     public void login() { startActivity(new Intent(this, LoginActivity.class)); }
