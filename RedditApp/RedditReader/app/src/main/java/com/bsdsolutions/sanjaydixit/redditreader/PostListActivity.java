@@ -2,6 +2,7 @@ package com.bsdsolutions.sanjaydixit.redditreader;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -9,16 +10,24 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
-import com.bsdsolutions.sanjaydixit.redditreader.dummy.DummyContent;
+import com.bsdsolutions.sanjaydixit.redditreader.content.PostItemList;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
+
+import net.dean.jraw.auth.AuthenticationManager;
+import net.dean.jraw.auth.AuthenticationState;
+import net.dean.jraw.auth.NoSuchTokenException;
+import net.dean.jraw.http.oauth.Credentials;
+import net.dean.jraw.http.oauth.OAuthException;
 
 import java.util.List;
 
@@ -37,6 +46,8 @@ public class PostListActivity extends AppCompatActivity {
      * device.
      */
     private boolean mTwoPane;
+
+    public static String TAG = "SanjayRedditReader";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,17 +80,62 @@ public class PostListActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        AuthenticationState state = AuthenticationManager.get().checkAuthState();
+        Log.d(TAG, "AuthenticationState for onResume(): " + state);
+
+        switch (state) {
+            case READY:
+                loadPosts();
+                break;
+            case NONE:
+                Toast.makeText(PostListActivity.this, "Log in first", Toast.LENGTH_SHORT).show();
+                login();
+                break;
+            case NEED_REFRESH:
+                refreshAccessTokenAsync();
+                break;
+        }
+    }
+
+    private void refreshAccessTokenAsync() {
+        new AsyncTask<Credentials, Void, Void>() {
+            @Override
+            protected Void doInBackground(Credentials... params) {
+                try {
+                    AuthenticationManager.get().refreshAccessToken(LoginActivity.CREDENTIALS);
+                } catch (NoSuchTokenException | OAuthException e) {
+                    Log.e(TAG, "Could not refresh access token", e);
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Void v) {
+                Log.d(TAG, "Reauthenticated");
+            }
+        }.execute();
+    }
+
+    public void loadPosts() {
+
+    }
+
+    public void login() { startActivity(new Intent(this, LoginActivity.class)); }
+
     private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
-        recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(this, DummyContent.ITEMS));
+        recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(this, PostItemList.ITEMS));
     }
 
     public class SimpleItemRecyclerViewAdapter
             extends RecyclerView.Adapter<SimpleItemRecyclerViewAdapter.ViewHolder> {
 
-        private final List<DummyContent.DummyItem> mValues;
+        private final List<PostItemList.SinglePost> mValues;
         private Context mContext = null;
 
-        public SimpleItemRecyclerViewAdapter( Context context, List<DummyContent.DummyItem> items) {
+        public SimpleItemRecyclerViewAdapter( Context context, List<PostItemList.SinglePost> items) {
             mContext = context;
             mValues = items;
         }
@@ -144,7 +200,7 @@ public class PostListActivity extends AppCompatActivity {
             public final TextView mUpvoteView;
             public final TextView mDownvoteView;
             public final ImageView mPostImageView;
-            public DummyContent.DummyItem mItem;
+            public PostItemList.SinglePost mItem;
 
             public ViewHolder(View view) {
                 super(view);

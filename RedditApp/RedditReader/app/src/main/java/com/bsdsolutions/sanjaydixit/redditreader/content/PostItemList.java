@@ -1,4 +1,4 @@
-package com.bsdsolutions.sanjaydixit.redditreader.dummy;
+package com.bsdsolutions.sanjaydixit.redditreader.content;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,17 +11,17 @@ import java.util.Map;
  * <p>
  * TODO: Replace all uses of this class before publishing your app.
  */
-public class DummyContent {
+public class PostItemList {
 
     /**
      * An array of sample (dummy) items.
      */
-    public static final List<DummyItem> ITEMS = new ArrayList<DummyItem>();
+    public static final List<SinglePost> ITEMS = new ArrayList<SinglePost>();
 
     /**
      * A map of sample (dummy) items, by ID.
      */
-    public static final Map<String, DummyItem> ITEM_MAP = new HashMap<String, DummyItem>();
+    public static final Map<String, SinglePost> ITEM_MAP = new HashMap<String, SinglePost>();
 
     private static final int COUNT = 25;
 
@@ -32,13 +32,13 @@ public class DummyContent {
         }
     }
 
-    private static void addItem(DummyItem item) {
+    private static void addItem(SinglePost item) {
         ITEMS.add(item);
         ITEM_MAP.put(item.id, item);
     }
 
-    private static DummyItem createDummyItem(int position) {
-        return new DummyItem(String.valueOf(position), "Item " + position, "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Android_robot.svg/2000px-Android_robot.svg.png", 100, 100, 100);
+    private static SinglePost createDummyItem(int position) {
+        return new SinglePost(String.valueOf(position), "Item " + position, "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Android_robot.svg/2000px-Android_robot.svg.png", 100, 100, 100);
     }
 
     private static String makeDetails(int position) {
@@ -53,7 +53,7 @@ public class DummyContent {
     /**
      * A dummy item representing a piece of content.
      */
-    public static class DummyItem {
+    public static class SinglePost {
         public final String id;
         public final String title;
         public final String image;
@@ -61,7 +61,7 @@ public class DummyContent {
         public final int upVoteCount;
         public final int downVoteCount;
 
-        public DummyItem(String id, String title, String image, int commentCount, int upVoteCount, int downVoteCount) {
+        public SinglePost(String id, String title, String image, int commentCount, int upVoteCount, int downVoteCount) {
             this.id = id;
             this.title = title;
             this.image = image;
