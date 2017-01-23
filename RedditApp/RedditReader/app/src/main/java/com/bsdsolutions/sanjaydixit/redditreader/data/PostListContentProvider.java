@@ -59,34 +59,70 @@ public class PostListContentProvider extends ContentProvider {
     @Nullable
     @Override
     public String getType(Uri uri) {
-        return null;
-    }
+        switch (sUriMatcher.match(uri)) {
+            case 1:
+                return SinglePostContract.CONTENT_DIR_TYPE;
+            default:
+                throw new IllegalArgumentException("Unknown Uri: " + uri);
+        }    }
 
     @Nullable
     @Override
     public Uri insert(Uri uri, ContentValues contentValues) {
-        Uri result;
+        Uri result = null;
         long _id;
-        db = mDbHelper.getWritableDatabase();
+        switch(sUriMatcher.match(uri)) {
+            case 1:
+            db = mDbHelper.getWritableDatabase();
 
-        _id = db.insert(tableName, null, value);
-        if ( _id > 0 ) {
-            result = SinglePostContract.buildUri(tableName, _id);
-        } else {
-            throw new SQLException("Failed to insert row into " + uri);
+            _id = db.insert(SinglePostContract.PostTableEntry.TABLE_NAME, null, contentValues);
+            if (_id > 0) {
+                result = SinglePostContract.buildPostPathUri(_id);
+            } else {
+                throw new SQLException("Failed to insert row into " + uri);
+            }
+                getContext().getContentResolver().notifyChange(uri, null);
+                break;
+            default:
+                break;
         }
 
-        getContext().getContentResolver().notifyChange(uri, null);
         return result;
     }
 
     @Override
     public int delete(Uri uri, String s, String[] strings) {
-        return 0;
+        int rowsDeleted = 0;
+        if(s == null || s.isEmpty())
+        {
+            return rowsDeleted;
+        }
+        switch(sUriMatcher.match(uri)) {
+            case 1:
+                rowsDeleted = db.delete(DATABASE_NAME,s,strings);
+                break;
+        }
+        if (rowsDeleted != 0) {
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+        return rowsDeleted;
     }
 
     @Override
     public int update(Uri uri, ContentValues contentValues, String s, String[] strings) {
-        return 0;
+        int rowsUpdated = 0;
+        if(s == null || s.isEmpty())
+        {
+            return rowsUpdated;
+        }
+        switch(sUriMatcher.match(uri)) {
+            case 1:
+                rowsUpdated = db.update(DATABASE_NAME,contentValues,s,strings);
+                break;
+        }
+        if (rowsUpdated != 0) {
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+        return rowsUpdated;
     }
 }

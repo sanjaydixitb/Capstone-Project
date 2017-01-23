@@ -12,7 +12,7 @@ import java.util.List;
 
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.SQL_CREATE_ENTRIES;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.SQL_DELETE_ENTRIES;
-import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.FeedEntry;
+import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry;
 
 /**
  * Created by sanjaydixit on 23/01/17.
@@ -59,40 +59,40 @@ public class PostReaderDbHelper extends SQLiteOpenHelper {
 
 // Create a new map of values, where column names are the keys
             ContentValues values = new ContentValues();
-            values.put(FeedEntry.COLUMN_NAME_ID, id);
-            values.put(FeedEntry.COLUMN_NAME_TITLE, title);
-            values.put(FeedEntry.COLUMN_NAME_COMMENTS, comments);
-            values.put(FeedEntry.COLUMN_NAME_UPVOTES, upvotes);
-            values.put(FeedEntry.COLUMN_NAME_DOWNVOTES, downvotes);
-            values.put(FeedEntry.COLUMN_NAME_IMAGE_LINK, imageLink);
+            values.put(PostTableEntry.COLUMN_NAME_ID, id);
+            values.put(PostTableEntry.COLUMN_NAME_TITLE, title);
+            values.put(PostTableEntry.COLUMN_NAME_COMMENTS, comments);
+            values.put(PostTableEntry.COLUMN_NAME_UPVOTES, upvotes);
+            values.put(PostTableEntry.COLUMN_NAME_DOWNVOTES, downvotes);
+            values.put(PostTableEntry.COLUMN_NAME_IMAGE_LINK, imageLink);
 
             String[] projection = {
-                    FeedEntry._ID,
-                    FeedEntry.COLUMN_NAME_ID,
+                    PostTableEntry._ID,
+                    PostTableEntry.COLUMN_NAME_ID,
             };
 
 // Filter results WHERE "title" = 'My Title'
-            String selection = FeedEntry.COLUMN_NAME_ID + " = ?";
+            String selection = PostTableEntry.COLUMN_NAME_ID + " = ?";
             String[] selectionArgs = {String.valueOf(id)};
 
 // How you want the results sorted in the resulting Cursor
             String sortOrder =
-                    FeedEntry.COLUMN_NAME_ID + " DESC";
+                    PostTableEntry.COLUMN_NAME_ID + " DESC";
 
             Cursor result = getDataFromDatabase(projection, selection, selectionArgs, sortOrder);
             if (result.getCount() != 0) {
-                selection = FeedEntry.COLUMN_NAME_ID + " LIKE ?";
+                selection = PostTableEntry.COLUMN_NAME_ID + " LIKE ?";
 
                 //Delete the entry and make a new one so that new ID is newer?
                 int count = db.delete(
-                        FeedEntry.TABLE_NAME,
+                        PostTableEntry.TABLE_NAME,
                         selection,
                         selectionArgs);
 
             }
 
 // Insert the new row, returning the primary key value of the new row
-            long newRowId = db.insert(FeedEntry.TABLE_NAME, null, values);
+            long newRowId = db.insert(PostTableEntry.TABLE_NAME, null, values);
 
         }
     }
@@ -101,7 +101,7 @@ public class PostReaderDbHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = getReadableDatabase();
 
         Cursor cursor = db.query(
-                FeedEntry.TABLE_NAME,  // The table to query
+                PostTableEntry.TABLE_NAME,  // The table to query
                 projection,                               // The columns to return
                 selection,                                // The columns for the WHERE clause
                 selectionArgs,                            // The values for the WHERE clause
