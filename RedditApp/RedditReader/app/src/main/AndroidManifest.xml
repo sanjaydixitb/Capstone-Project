@@ -45,7 +45,7 @@
         </activity>
         <activity
             android:name=".LoginActivity"
-            android:label="@string/title_activity_login"></activity>
+            android:label="@string/title_activity_login" />
 
         <meta-data
             android:name="net.dean.jraw.REDDIT_USERNAME"
@@ -73,7 +73,21 @@
                 android:resource="@xml/authenticator" />
         </service>
 
-        <activity android:name=".SubredditSelector"></activity>
+        <activity android:name=".SubredditSelector" />
+
+        <receiver android:name=".RedditReaderWidget">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/reddit_reader_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".RedditReaderWidgetRemoteViewsService"
+            android:exported="false"></service>
     </application>
 
 </manifest>

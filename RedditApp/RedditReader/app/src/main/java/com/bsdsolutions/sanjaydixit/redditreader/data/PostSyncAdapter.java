@@ -7,6 +7,7 @@ import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SyncRequest;
 import android.content.SyncResult;
 import android.os.Build;
@@ -16,6 +17,7 @@ import android.util.Log;
 import com.bsdsolutions.sanjaydixit.redditreader.PostListActivity;
 import com.bsdsolutions.sanjaydixit.redditreader.R;
 import com.bsdsolutions.sanjaydixit.redditreader.util.JRAWUtils;
+import com.bsdsolutions.sanjaydixit.redditreader.util.Utils;
 
 import net.dean.jraw.RedditClient;
 import net.dean.jraw.auth.AuthenticationManager;
@@ -113,7 +115,8 @@ public class PostSyncAdapter extends AbstractThreadedSyncAdapter {
 
         getPosts();
 
-        // TODO: notify other components
+        Intent dataUpdatedIntent = new Intent(Utils.ACTION_WIDGET_UPDATE_REQUIRED).setPackage(getContext().getPackageName());
+        getContext().sendBroadcast(dataUpdatedIntent);
 
         Log.d(PostListActivity.TAG, "Sync finished");
     }

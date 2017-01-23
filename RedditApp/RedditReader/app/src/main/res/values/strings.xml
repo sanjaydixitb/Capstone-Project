@@ -18,4 +18,9 @@
         completions."
     </string>
     <string name="banner_ad_unit_id">ca-app-pub-5161322682270145/9498483710</string>
+    <string name="appwidget_text">EXAMPLE</string>
+    <string name="add_widget">Add widget</string>
+    <string name="configure">Configure</string>
+    <string name="message_internal_error">Internal Error!</string>
+    <string name="message_no_valid_submissions">No posts to show. Select subreddits.</string>
 </resources>

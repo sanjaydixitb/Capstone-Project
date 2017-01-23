@@ -41,7 +41,10 @@ import net.dean.jraw.auth.NoSuchTokenException;
 import net.dean.jraw.http.oauth.Credentials;
 import net.dean.jraw.http.oauth.OAuthException;
 
+import java.util.ArrayList;
+
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.CONTENT_AUTHORITY;
+import static com.bsdsolutions.sanjaydixit.redditreader.util.Utils.INTENT_PARCELABLE_EXTRA_KEY;
 
 /**
  * An activity representing a list of Posts. This activity
@@ -142,7 +145,18 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
 
         switch (state) {
             case READY:
-                loadPosts();
+                Intent i = getIntent();
+                ArrayList<PostItemList.SinglePost> posts = i.getParcelableArrayListExtra(INTENT_PARCELABLE_EXTRA_KEY);
+                if(posts != null && posts.size() > 0) {
+                    //TODO: there's got to be a better way to do this.
+                    Intent intent = new Intent(getApplicationContext(), PostDetailActivity.class);
+                    intent.putExtra(PostDetailFragment.ARG_ITEM, posts.get(0));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    getApplicationContext().startActivity(intent);
+                    i.removeExtra(INTENT_PARCELABLE_EXTRA_KEY);
+                } else {
+                    loadPosts();
+                }
                 break;
             case NONE:
                 Toast.makeText(PostListActivity.this, "Log in first", Toast.LENGTH_SHORT).show();
@@ -152,6 +166,7 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
                 refreshAccessTokenAsync();
                 break;
         }
+
     }
 
     private void refreshAccessTokenAsync() {
