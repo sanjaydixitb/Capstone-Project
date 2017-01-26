@@ -61,57 +61,56 @@ public class PostDetailFragment extends Fragment {
             mImageView = (ImageView) activity.findViewById(R.id.detail_image_view);
             if (appBarLayout != null) {
                 appBarLayout.setTitle(mItem.title);
-            }
-            final String itemType = mItem.type;
-            final String url = mItem.url;
-            appBarLayout.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Intent i = new Intent();
-                    i.setAction(Intent.ACTION_VIEW);
+                final String itemType = mItem.type;
+                final String url = mItem.url;
+                appBarLayout.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Intent i = new Intent();
+                        i.setAction(Intent.ACTION_VIEW);
 
-                    String mimeType = null;
-                    String fileExt = null;
-
+                        String mimeType = null;
+                        String fileExt = null;
 
 
-                    if(Submission.PostHint.IMAGE.toString().equals(itemType)) {
-                        //Image
-                        fileExt = MimeTypeMap.getFileExtensionFromUrl(url);
-                        if (!"".equals(fileExt)) {
-                            mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExt);
-                        }
-                    } else if(Submission.PostHint.LINK.toString().equals(itemType)) {
-                        //Link
-                    } else if(Submission.PostHint.SELF.toString().equals(itemType)) {
-                        //Text
-                        return;
-                    } else if(Submission.PostHint.VIDEO.toString().equals(itemType)) {
-                        //Video
-                        fileExt = MimeTypeMap.getFileExtensionFromUrl(url);
-                        if (!"".equals(fileExt)) {
-                            mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExt);
-                        }
-                    } else {
-                        return;
-                        //Unknown
-                    }
-                    if (mimeType == null) {
-                        i.setData(Uri.parse(url));
-                        getContext().startActivity(i);
-                    } else {
-
-                        i.setDataAndType(Uri.parse(url), mimeType);
-                        if (getContext().getPackageManager().resolveActivity(i, PackageManager.MATCH_ALL) != null) {
-                            getContext().startActivity(i);
+                        if (Submission.PostHint.IMAGE.toString().equals(itemType)) {
+                            //Image
+                            fileExt = MimeTypeMap.getFileExtensionFromUrl(url);
+                            if (!"".equals(fileExt)) {
+                                mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExt);
+                            }
+                        } else if (Submission.PostHint.LINK.toString().equals(itemType)) {
+                            //Link
+                        } else if (Submission.PostHint.SELF.toString().equals(itemType)) {
+                            //Text
+                            return;
+                        } else if (Submission.PostHint.VIDEO.toString().equals(itemType)) {
+                            //Video
+                            fileExt = MimeTypeMap.getFileExtensionFromUrl(url);
+                            if (!"".equals(fileExt)) {
+                                mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExt);
+                            }
                         } else {
-                            // remove specific type and try again
+                            return;
+                            //Unknown
+                        }
+                        if (mimeType == null) {
                             i.setData(Uri.parse(url));
                             getContext().startActivity(i);
+                        } else {
+
+                            i.setDataAndType(Uri.parse(url), mimeType);
+                            if (getContext().getPackageManager().resolveActivity(i, PackageManager.MATCH_ALL) != null) {
+                                getContext().startActivity(i);
+                            } else {
+                                // remove specific type and try again
+                                i.setData(Uri.parse(url));
+                                getContext().startActivity(i);
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
         }
     }
 
@@ -123,7 +122,7 @@ public class PostDetailFragment extends Fragment {
         // Show the dummy content as text in a TextView.
         if (mItem != null) {
             ((TextView) rootView.findViewById(R.id.post_detail)).setText(mItem.title);
-            if(mItem.image != null && mItem.image.length() > 0 && mImageView != null) {
+            if (mItem.image != null && mItem.image.length() > 0 && mImageView != null) {
                 Picasso.with(getContext()).load(mItem.image).into(mImageView);
             }
         }
