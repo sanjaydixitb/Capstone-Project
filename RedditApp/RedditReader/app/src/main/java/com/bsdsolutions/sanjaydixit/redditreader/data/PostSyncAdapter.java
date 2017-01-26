@@ -115,7 +115,7 @@ public class PostSyncAdapter extends AbstractThreadedSyncAdapter {
 
         getPosts();
 
-        Intent dataUpdatedIntent = new Intent(Utils.ACTION_WIDGET_UPDATE_REQUIRED).setPackage(getContext().getPackageName());
+        Intent dataUpdatedIntent = new Intent(Utils.UPDATE_APP_WIDGET).setPackage(getContext().getPackageName());
         getContext().sendBroadcast(dataUpdatedIntent);
 
         Log.d(PostListActivity.TAG, "Sync finished");

@@ -13,18 +13,6 @@ import com.bsdsolutions.sanjaydixit.redditreader.util.Utils;
  */
 public class RedditReaderWidget extends AppWidgetProvider {
 
-    static void updateAppWidget(Context context, AppWidgetManager appWidgetManager,
-                                int appWidgetId) {
-
-        CharSequence widgetText = context.getString(R.string.appwidget_text);
-        // Construct the RemoteViews object
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.reddit_reader_widget);
-        views.setTextViewText(R.id.appwidget_text, widgetText);
-
-        // Instruct the widget manager to update the widget
-        appWidgetManager.updateAppWidget(appWidgetId, views);
-    }
-
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         context.startService(new Intent(context, RedditReaderWidgetRemoteViewsService.class));
@@ -33,7 +21,7 @@ public class RedditReaderWidget extends AppWidgetProvider {
     @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
-        if (Utils.ACTION_WIDGET_UPDATE_REQUIRED.equals(intent.getAction())) {
+        if (Utils.UPDATE_APP_WIDGET.equals(intent.getAction())) {
             context.startService(new Intent(context, RedditReaderWidgetRemoteViewsService.class));
         }
     }

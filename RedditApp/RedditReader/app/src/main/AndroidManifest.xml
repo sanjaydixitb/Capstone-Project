@@ -78,6 +78,7 @@
         <receiver android:name=".RedditReaderWidget">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.bsdsolutions.sanjaydixit.redditreader.UPDATE_WIDGET" />
             </intent-filter>
 
             <meta-data
