@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.bsdsolutions.sanjaydixit.redditreader.data.SubredditLoaderCallbackInterface;
 import com.bsdsolutions.sanjaydixit.redditreader.util.JRAWUtils;
@@ -102,6 +103,9 @@ public class SubredditSelectorActivity extends AppCompatActivity implements Subr
         mAdapter.mItems.clear();
         mAdapter.mItems.addAll(subredditInformationList);
         mAdapter.notifyDataSetChanged();
+        if(subredditInformationList.size() < 1) {
+            Toast.makeText(getApplicationContext(),"Unable to fetch subscribed subreddits or there are none!",Toast.LENGTH_LONG).show();
+        }
         mSwipeRefreshLayout.setRefreshing(false);
     }
 

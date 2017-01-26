@@ -132,6 +132,14 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
     }
 
     public void refreshItems(boolean restartLoader) {
+        //Handle no subreddits selected
+
+        Set<String> subreddits = getSubscribedRedditSet(getApplicationContext());
+        if(subreddits == null || subreddits.size() < 1) {
+            mSwipeRefreshLayout.setRefreshing(false);
+            Toast.makeText(getApplicationContext(),"Select atleast one subreddit to view posts.",Toast.LENGTH_LONG).show();
+            return;
+        }
         if(restartLoader) {
             if (getSupportLoaderManager().getLoader(LOADER_ID) != null)
                 getSupportLoaderManager().restartLoader(LOADER_ID, null, this);

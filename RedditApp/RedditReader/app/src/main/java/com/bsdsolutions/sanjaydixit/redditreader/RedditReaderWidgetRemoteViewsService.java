@@ -88,6 +88,7 @@ public class RedditReaderWidgetRemoteViewsService extends IntentService {
             if (message != null) {
                 message = getString(R.string.app_name) + ": " + message;
                 views.setTextViewText(R.id.appwidget_text, message);
+                views.setViewVisibility(R.id.appwidget_post_image,View.GONE);
             } else {
 
                 String id = cursor.getString(cursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_ID));
