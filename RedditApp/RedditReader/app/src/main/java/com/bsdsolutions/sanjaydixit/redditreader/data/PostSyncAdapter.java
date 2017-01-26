@@ -13,6 +13,7 @@ import android.content.SyncResult;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.bsdsolutions.sanjaydixit.redditreader.PostListActivity;
 import com.bsdsolutions.sanjaydixit.redditreader.R;
@@ -25,6 +26,7 @@ import net.dean.jraw.auth.AuthenticationState;
 import net.dean.jraw.models.Submission;
 import net.dean.jraw.paginators.SubredditPaginator;
 
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -113,7 +115,15 @@ public class PostSyncAdapter extends AbstractThreadedSyncAdapter {
             }
         }
 
-        getPosts();
+        HashSet<String> selectedSubredditSet = new HashSet<>();
+        selectedSubredditSet.addAll(Utils.getSubscribedRedditSet(getContext()));
+        if(selectedSubredditSet.size() > 0) {
+            for (String subreddit : selectedSubredditSet) {
+                getPosts(subreddit);
+            }
+        } else {
+            getPosts(null);
+        }
 
         Intent dataUpdatedIntent = new Intent(Utils.UPDATE_APP_WIDGET).setPackage(getContext().getPackageName());
         getContext().sendBroadcast(dataUpdatedIntent);
@@ -121,12 +131,20 @@ public class PostSyncAdapter extends AbstractThreadedSyncAdapter {
         Log.d(PostListActivity.TAG, "Sync finished");
     }
 
-    private void getPosts() {
+    private void getPosts(String subredditName) {
+        Log.v(PostListActivity.TAG, "Getting posts for subreddit: " + subredditName);
         Context ctx = getContext();
         RedditClient redditClient = AuthenticationManager.get().getRedditClient();
 
         ContentResolver cr = ctx.getContentResolver();
-        SubredditPaginator paginator = new SubredditPaginator(redditClient);
+
+        SubredditPaginator paginator = null;
+
+        if(subredditName == null || subredditName.isEmpty())
+            paginator = new SubredditPaginator(redditClient);
+        else {
+            paginator = new SubredditPaginator(redditClient, subredditName);
+        }
 
         List<Submission> submissions = null;
         try {
@@ -142,7 +160,7 @@ public class PostSyncAdapter extends AbstractThreadedSyncAdapter {
         Log.v(PostListActivity.TAG, "Got " + submissions.size() + " posts!");
 
         for (Submission submission : submissions) {
-            if (submission.isNsfw() || submission.getTitle().toLowerCase().contains("nsfw")) {
+            if ( submission == null || submission.isNsfw() || submission.getTitle().toLowerCase().contains("nsfw")) {
                 continue;
             }
 
@@ -153,6 +171,7 @@ public class PostSyncAdapter extends AbstractThreadedSyncAdapter {
             values.put(SinglePostContract.PostTableEntry.COLUMN_NAME_COMMENTS, String.valueOf(submission.getCommentCount()));
             values.put(SinglePostContract.PostTableEntry.COLUMN_NAME_VOTECOUNT, String.valueOf(submission.getScore()));
             values.put(SinglePostContract.PostTableEntry.COLUMN_NAME_IMAGE_LINK, String.valueOf(submission.getThumbnail()));
+            values.put(SinglePostContract.PostTableEntry.COLUMN_NAME_SUBREDDIT_NAME, String.valueOf(submission.getSubredditName()));
             try {
                 cr.insert(SinglePostContract.POST_TABLE_PATH, values);
             } catch (Exception e) {

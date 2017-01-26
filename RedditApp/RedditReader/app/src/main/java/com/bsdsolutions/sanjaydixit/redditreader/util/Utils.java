@@ -30,5 +30,6 @@ public class Utils {
         SharedPreferences preferences = context.getSharedPreferences(SUBREDDIT_SET_SHARED_PREFS_FILE_NAME,Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putStringSet(SUBREDDIT_SET_SHARED_PREFS_KEY,subredditSet);
+        editor.apply();
     }
 }

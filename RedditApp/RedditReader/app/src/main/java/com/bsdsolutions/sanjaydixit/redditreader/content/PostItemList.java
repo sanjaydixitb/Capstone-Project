@@ -41,7 +41,7 @@ public class PostItemList {
     }
 
     private static SinglePost createDummyItem(int position) {
-        return new SinglePost(String.valueOf(position), "Item " + position, "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Android_robot.svg/2000px-Android_robot.svg.png", 100, 100);
+        return new SinglePost(String.valueOf(position), "Item " + position, "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Android_robot.svg/2000px-Android_robot.svg.png","", 100, 100);
     }
 
     private static String makeDetails(int position) {
@@ -62,19 +62,22 @@ public class PostItemList {
         public final String image;
         public final int commentCount;
         public final int voteCount;
+        public final String subredditId;
 
-        public SinglePost(String id, String title, String image, int commentCount, int voteCount) {
+        public SinglePost(String id, String title, String image, String subredditId, int commentCount, int voteCount) {
             this.id = id;
             this.title = title;
             this.image = image;
             this.commentCount = commentCount;
             this.voteCount = voteCount;
+            this.subredditId = subredditId;
         }
 
         protected SinglePost(Parcel in) {
             id = in.readString();
             title = in.readString();
             image = in.readString();
+            subredditId = in.readString();
             commentCount = in.readInt();
             voteCount = in.readInt();
         }
@@ -89,6 +92,7 @@ public class PostItemList {
             dest.writeString(id);
             dest.writeString(title);
             dest.writeString(image);
+            dest.writeString(subredditId);
             dest.writeInt(commentCount);
             dest.writeInt(voteCount);
         }

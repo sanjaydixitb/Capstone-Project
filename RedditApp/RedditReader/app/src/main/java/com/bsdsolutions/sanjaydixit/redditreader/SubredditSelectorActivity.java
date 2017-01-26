@@ -96,14 +96,14 @@ public class SubredditSelectorActivity extends AppCompatActivity implements Subr
             final SubredditInformation info = mItems.get(position);
             holder.mTitleView.setText(info.title);
             holder.mDescriptionView.setText(info.description);
-            holder.mCheckBox.setChecked(mSelectedSubredditSet.contains(info.id));
+            holder.mCheckBox.setChecked(mSelectedSubredditSet.contains(info.displayName));
             holder.mCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                     if(!b) {
-                        mSelectedSubredditSet.remove(info.id);
+                        mSelectedSubredditSet.remove(info.displayName);
                     } else {
-                        mSelectedSubredditSet.add(info.id);
+                        mSelectedSubredditSet.add(info.displayName);
                     }
                 }
             });
@@ -185,6 +185,7 @@ public class SubredditSelectorActivity extends AppCompatActivity implements Subr
                 information.id = subreddit.getId();
                 information.title = subreddit.getDisplayName();
                 information.description = subreddit.getPublicDescription();
+                information.displayName = subreddit.getDisplayName();
                 subredditInformationList.add(information);
             }
 

@@ -41,9 +41,12 @@ import net.dean.jraw.http.oauth.Credentials;
 import net.dean.jraw.http.oauth.OAuthException;
 
 import java.util.ArrayList;
+import java.util.Set;
 
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.CONTENT_AUTHORITY;
+import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_SUBREDDIT_NAME;
 import static com.bsdsolutions.sanjaydixit.redditreader.util.Utils.INTENT_PARCELABLE_EXTRA_KEY;
+import static com.bsdsolutions.sanjaydixit.redditreader.util.Utils.getSubscribedRedditSet;
 
 /**
  * An activity representing a list of Posts. This activity
@@ -78,7 +81,7 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
         assert recyclerView != null;
         setupRecyclerView((RecyclerView) recyclerView);
 
-        getSupportLoaderManager().initLoader(1 , null , this);   // 1 is LOADER_ID
+        getSupportLoaderManager().initLoader(LOADER_ID , null , this);
 
         if (findViewById(R.id.post_detail_container) != null) {
             // The detail container view will be present only in the
@@ -94,7 +97,7 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
             @Override
             public void onRefresh() {
                 // Refresh items
-                refreshItems();
+                refreshItems(false);
             }
         });
 
@@ -127,8 +130,10 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
         }
     }
 
-    public void refreshItems() {
+    public void refreshItems(boolean restartLoader) {
         PostSyncAdapter.syncNow(getApplicationContext(), CONTENT_AUTHORITY, null);
+        if(restartLoader)
+            getSupportLoaderManager().restartLoader(LOADER_ID, null, this);
     }
 
     public void displaySubredditSelectorActivity() {
@@ -143,6 +148,13 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
         Log.d(TAG, "AuthenticationState for onResume(): " + state);
 
         switch (state) {
+            case NONE:
+                Toast.makeText(PostListActivity.this, "Log in first", Toast.LENGTH_SHORT).show();
+                login();
+                break;
+            case NEED_REFRESH:
+                refreshAccessTokenAsync();
+                break;
             case READY:
                 Intent i = getIntent();
                 ArrayList<PostItemList.SinglePost> posts = i.getParcelableArrayListExtra(INTENT_PARCELABLE_EXTRA_KEY);
@@ -154,24 +166,7 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
                     getApplicationContext().startActivity(intent);
                     i.removeExtra(INTENT_PARCELABLE_EXTRA_KEY);
                 } else {
-                    loadPosts();
-                }
-                break;
-            case NONE:
-                Toast.makeText(PostListActivity.this, "Log in first", Toast.LENGTH_SHORT).show();
-                login();
-                break;
-            case NEED_REFRESH:
-                refreshAccessTokenAsync();
-                Intent intent1 = getIntent();
-                ArrayList<PostItemList.SinglePost> postList = intent1.getParcelableArrayListExtra(INTENT_PARCELABLE_EXTRA_KEY);
-                if(postList != null && postList.size() > 0) {
-                    //TODO: there's got to be a better way to do this.
-                    Intent intent = new Intent(getApplicationContext(), PostDetailActivity.class);
-                    intent.putExtra(PostDetailFragment.ARG_ITEM, postList.get(0));
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    getApplicationContext().startActivity(intent);
-                    intent1.removeExtra(INTENT_PARCELABLE_EXTRA_KEY);
+                    refreshItems(true);
                 }
                 break;
         }
@@ -193,12 +188,9 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
             @Override
             protected void onPostExecute(Void v) {
                 Log.d(TAG, "Reauthenticated");
+                refreshItems(true);
             }
         }.execute();
-    }
-
-    public void loadPosts() {
-        PostSyncAdapter.syncNow(getApplicationContext(),CONTENT_AUTHORITY,null);
     }
 
     public void login() { startActivity(new Intent(this, LoginActivity.class)); }
@@ -208,11 +200,23 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
         recyclerView.setAdapter(mAdapter);
     }
 
+
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         switch(id) {
             case LOADER_ID:
-                return new CursorLoader(PostListActivity.this, SinglePostContract.POST_TABLE_PATH,null,null,null,null);
+                Set<String> subreddits = getSubscribedRedditSet(getApplicationContext());
+                if(subreddits == null || subreddits.size() < 1)
+                    return null;
+                int argcount = subreddits.size(); // number of IN arguments
+                StringBuilder inList = new StringBuilder(argcount * 2);
+                for (int i = 0; i < argcount; i++) {
+                    if(i > 0) {
+                        inList.append(",");
+                    }
+                    inList.append("?");
+                }
+                return new CursorLoader(PostListActivity.this, SinglePostContract.POST_TABLE_PATH,null,COLUMN_NAME_SUBREDDIT_NAME + " IN (" + inList.toString() + ")",subreddits.toArray(new String[subreddits.size()]),null);
         }
         return null;
     }
@@ -320,9 +324,10 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
             String id = mCursor.getString(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_ID));
             String title = mCursor.getString(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_TITLE));
             String image = mCursor.getString(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_IMAGE_LINK));
+            String subredditId = mCursor.getString(mCursor.getColumnIndex(COLUMN_NAME_SUBREDDIT_NAME));
             int commentCount = mCursor.getInt(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_COMMENTS));
             int voteCount = mCursor.getInt(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_VOTECOUNT));
-            PostItemList.SinglePost post = new PostItemList.SinglePost(id,title,image,commentCount,voteCount);
+            PostItemList.SinglePost post = new PostItemList.SinglePost(id,title,image,subredditId,commentCount,voteCount);
             return post;
         }
 

@@ -11,6 +11,7 @@ public interface SubredditLoaderCallbackInterface {
     class SubredditInformation{
         public String title, description;
         public String id;
+        public String displayName;
     }
 
     void OnSubredditsLoaded(List<SubredditInformation> subredditInformationList);
