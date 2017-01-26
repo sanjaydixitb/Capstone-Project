@@ -18,9 +18,11 @@ import com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract;
 import com.bsdsolutions.sanjaydixit.redditreader.util.Utils;
 import com.squareup.picasso.Picasso;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.icu.lang.UCharacter.GraphemeClusterBreak.V;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.POST_TABLE_PATH;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_COMMENTS;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_ID;
@@ -87,9 +89,18 @@ public class RedditReaderWidgetRemoteViewsService extends IntentService {
                 views.setTextViewText(R.id.appwidget_text, title);
                 views.setViewVisibility(R.id.appwidget_text, View.VISIBLE);
 
-                // only moving the cursor if we didn't reach last row
-                // in case there are more widgets than rows in the cursor
-                // the last row will be used for remaining widgets
+                try {
+                    if(image != null) {
+                        Bitmap b = Picasso.with(getApplicationContext()).load(image).get();
+                        views.setViewVisibility(R.id.appwidget_post_image,View.VISIBLE);
+                        views.setImageViewBitmap(R.id.appwidget_post_image, b);
+                    } else {
+                        views.setViewVisibility(R.id.appwidget_post_image,View.GONE);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
                 if (!cursor.isLast()) {
                     cursor.moveToNext();
                 }

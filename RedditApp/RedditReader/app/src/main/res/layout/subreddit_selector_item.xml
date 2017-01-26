@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="horizontal">
 
     <CheckBox
         android:id="@+id/subreddit_checkbox"
+        android:layout_gravity="top"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
@@ -17,12 +18,15 @@
         <TextView
             android:id="@+id/subreddit_title"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textStyle="bold|italic"/>
 
         <TextView
             android:id="@+id/subreddit_description"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:textSize="16sp"/>
     </LinearLayout>
 
 </LinearLayout>

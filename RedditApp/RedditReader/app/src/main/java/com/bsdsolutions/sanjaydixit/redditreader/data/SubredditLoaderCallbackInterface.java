@@ -10,7 +10,7 @@ public interface SubredditLoaderCallbackInterface {
 
     class SubredditInformation{
         public String title, description;
-        public Long id;
+        public String id;
     }
 
     void OnSubredditsLoaded(List<SubredditInformation> subredditInformationList);

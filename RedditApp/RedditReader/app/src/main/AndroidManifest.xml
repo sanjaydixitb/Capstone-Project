@@ -45,7 +45,8 @@
         </activity>
         <activity
             android:name=".LoginActivity"
-            android:label="@string/title_activity_login" />
+            android:label="@string/title_activity_login"
+            android:noHistory="true"/>
 
         <meta-data
             android:name="net.dean.jraw.REDDIT_USERNAME"
@@ -73,7 +74,7 @@
                 android:resource="@xml/authenticator" />
         </service>
 
-        <activity android:name=".SubredditSelector" />
+        <activity android:name=".SubredditSelectorActivity" />
 
         <receiver android:name=".RedditReaderWidget">
             <intent-filter>

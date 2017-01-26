@@ -29,7 +29,6 @@ import com.bsdsolutions.sanjaydixit.redditreader.content.PostItemList;
 import com.bsdsolutions.sanjaydixit.redditreader.data.PostSyncAdapter;
 import com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract;
 import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
 import com.squareup.picasso.Callback;
@@ -133,7 +132,7 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
     }
 
     public void displaySubredditSelectorActivity() {
-        Intent intent = new Intent(this, SubredditSelector.class);
+        Intent intent = new Intent(this, SubredditSelectorActivity.class);
         startActivity(intent);
     }
 

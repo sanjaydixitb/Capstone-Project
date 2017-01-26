@@ -14,23 +14,30 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import com.bsdsolutions.sanjaydixit.redditreader.data.SubredditLoaderCallbackInterface;
+import com.bsdsolutions.sanjaydixit.redditreader.util.JRAWUtils;
+import com.bsdsolutions.sanjaydixit.redditreader.util.Utils;
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
 
 import net.dean.jraw.RedditClient;
 import net.dean.jraw.auth.AuthenticationManager;
+import net.dean.jraw.auth.AuthenticationState;
 import net.dean.jraw.models.Listing;
 import net.dean.jraw.models.Subreddit;
 import net.dean.jraw.paginators.UserSubredditsPaginator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-public class SubredditSelector extends AppCompatActivity implements SubredditLoaderCallbackInterface {
+public class SubredditSelectorActivity extends AppCompatActivity implements SubredditLoaderCallbackInterface {
     private Tracker mTracker;
     private DownloadSubredditsTask mDownloadTask;
     private SubredditSelectorAdapter mAdapter;
+
+    private Set<String> mSelectedSubredditSet = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +52,8 @@ public class SubredditSelector extends AppCompatActivity implements SubredditLoa
         mAdapter = new SubredditSelectorAdapter();
         ((RecyclerView)recyclerView).setAdapter(mAdapter);
 
+        mSelectedSubredditSet = new HashSet<>();
+
     }
 
     @Override
@@ -53,7 +62,15 @@ public class SubredditSelector extends AppCompatActivity implements SubredditLoa
         setTitle(R.string.activity_subreddit_selector);
         mTracker.setScreenName(getString(R.string.activity_subreddit_selector));
         mTracker.send(new HitBuilders.ScreenViewBuilder().build());
+        mSelectedSubredditSet.clear();
+        mSelectedSubredditSet.addAll(Utils.getSubscribedRedditSet(getApplicationContext()));
         mDownloadTask.execute();
+    }
+
+    @Override
+    protected void onPause() {
+        Utils.setSubscribedRedditSet(getApplicationContext(),mSelectedSubredditSet);
+        super.onPause();
     }
 
     @Override
@@ -76,15 +93,17 @@ public class SubredditSelector extends AppCompatActivity implements SubredditLoa
 
         @Override
         public void onBindViewHolder(SubredditSelectorViewHolder holder, int position) {
-            SubredditInformation info = mItems.get(position);
+            final SubredditInformation info = mItems.get(position);
             holder.mTitleView.setText(info.title);
             holder.mDescriptionView.setText(info.description);
-            holder.mCheckBox.setChecked(true);
+            holder.mCheckBox.setChecked(mSelectedSubredditSet.contains(info.id));
             holder.mCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                     if(!b) {
-                        //TODO:Remove it!
+                        mSelectedSubredditSet.remove(info.id);
+                    } else {
+                        mSelectedSubredditSet.add(info.id);
                     }
                 }
             });
@@ -121,7 +140,21 @@ public class SubredditSelector extends AppCompatActivity implements SubredditLoa
 
         @Override
         protected List<SubredditInformation> doInBackground(Void... voids) {
+            Log.d(PostListActivity.TAG, "Fetching Subreddits user has subscribed to!");
             List<SubredditInformation> subredditInformationList = new ArrayList<>();
+
+            AuthenticationManager authMngr = AuthenticationManager.get();
+
+            if (authMngr.checkAuthState() == AuthenticationState.NEED_REFRESH) {
+                // refresh access token
+                try {
+                    Log.d(PostListActivity.TAG, "Refreshing access token");
+                    authMngr.refreshAccessToken(JRAWUtils.APP_CREDENTIALS);
+                } catch (Exception e) {
+                    Log.e(PostListActivity.TAG,"Exception: " + e);
+                    return subredditInformationList;
+                }
+            }
 
             RedditClient redditClient = AuthenticationManager.get().getRedditClient();
 
@@ -138,6 +171,7 @@ public class SubredditSelector extends AppCompatActivity implements SubredditLoa
                     }
                 }
             } catch (Exception e) {
+                Log.e(PostListActivity.TAG,"Exception: " + e);
                 return subredditInformationList;
             }
 
@@ -148,7 +182,7 @@ public class SubredditSelector extends AppCompatActivity implements SubredditLoa
 
             for (Subreddit subreddit: latestSubreddits.values()) {
                 SubredditInformation information = new SubredditInformation();
-                information.id = Long.parseLong(subreddit.getId());
+                information.id = subreddit.getId();
                 information.title = subreddit.getDisplayName();
                 information.description = subreddit.getPublicDescription();
                 subredditInformationList.add(information);
