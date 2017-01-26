@@ -15,6 +15,9 @@ import net.dean.jraw.auth.AuthenticationManager;
 import net.dean.jraw.auth.RefreshTokenHandler;
 import net.dean.jraw.http.LoggingMode;
 
+import static com.bsdsolutions.sanjaydixit.redditreader.data.PostSyncAdapter.SYNC_FLEXTIME;
+import static com.bsdsolutions.sanjaydixit.redditreader.data.PostSyncAdapter.SYNC_INTERVAL;
+
 /**
  * Created by sanjaydixit on 23/01/17.
  */
@@ -27,7 +30,7 @@ public class App extends Application {
         super.onCreate();
         JRAWUtils.InitJRAW(this);
 
-        PostSyncAdapter.init(this, SinglePostContract.CONTENT_AUTHORITY, 5 , 5 );
+        PostSyncAdapter.init(this, SinglePostContract.CONTENT_AUTHORITY, SYNC_INTERVAL , SYNC_FLEXTIME );
 
     }
 

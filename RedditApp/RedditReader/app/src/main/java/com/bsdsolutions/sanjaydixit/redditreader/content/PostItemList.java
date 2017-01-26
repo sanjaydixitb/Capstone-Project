@@ -40,7 +40,7 @@ public class PostItemList {
     }
 
     private static SinglePost createDummyItem(int position) {
-        return new SinglePost(String.valueOf(position), "Item " + position, "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Android_robot.svg/2000px-Android_robot.svg.png","", 100, 100);
+        return new SinglePost(String.valueOf(position), "Item " + position, "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Android_robot.svg/2000px-Android_robot.svg.png","","","", 100, 100);
     }
 
     private static String makeDetails(int position) {
@@ -62,14 +62,19 @@ public class PostItemList {
         public final int commentCount;
         public final int voteCount;
         public final String subredditId;
+        public final String type;
+        public final String url;
 
-        public SinglePost(String id, String title, String image, String subredditId, int commentCount, int voteCount) {
+        public SinglePost(String id, String title, String image, String subredditId, String type, String url, int commentCount, int voteCount) {
             this.id = id;
             this.title = title;
             this.image = image;
             this.commentCount = commentCount;
             this.voteCount = voteCount;
             this.subredditId = subredditId;
+            this.type = type;
+            this.url = url;
+
         }
 
         protected SinglePost(Parcel in) {
@@ -77,6 +82,8 @@ public class PostItemList {
             title = in.readString();
             image = in.readString();
             subredditId = in.readString();
+            type = in.readString();
+            url = in.readString();
             commentCount = in.readInt();
             voteCount = in.readInt();
         }
@@ -92,6 +99,8 @@ public class PostItemList {
             dest.writeString(title);
             dest.writeString(image);
             dest.writeString(subredditId);
+            dest.writeString(type);
+            dest.writeString(url);
             dest.writeInt(commentCount);
             dest.writeInt(voteCount);
         }

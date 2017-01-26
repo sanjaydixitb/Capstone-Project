@@ -21,7 +21,7 @@ import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.
 
 public class PostReaderDbHelper extends SQLiteOpenHelper {
 
-    public static final int DATABASE_VERSION = 3;
+    public static final int DATABASE_VERSION = 5;
     public static final String DATABASE_NAME = TABLE_NAME;
 
     public PostReaderDbHelper(Context context) {
@@ -56,6 +56,8 @@ public class PostReaderDbHelper extends SQLiteOpenHelper {
             int upvotes = post.voteCount;
             String imageLink = post.image;
             String subredditId = post.subredditId;
+            String type = post.type;
+            String url = post.url;
 
 // Create a new map of values, where column names are the keys
             ContentValues values = new ContentValues();
@@ -64,7 +66,9 @@ public class PostReaderDbHelper extends SQLiteOpenHelper {
             values.put(PostTableEntry.COLUMN_NAME_COMMENTS, comments);
             values.put(PostTableEntry.COLUMN_NAME_VOTECOUNT, upvotes);
             values.put(PostTableEntry.COLUMN_NAME_IMAGE_LINK, imageLink);
+            values.put(PostTableEntry.COLUMN_NAME_URL, url);
             values.put(PostTableEntry.COLUMN_NAME_SUBREDDIT_NAME, subredditId);
+            values.put(PostTableEntry.COLUMN_NAME_TYPE, type);
 
             String[] projection = {
                     PostTableEntry._ID,

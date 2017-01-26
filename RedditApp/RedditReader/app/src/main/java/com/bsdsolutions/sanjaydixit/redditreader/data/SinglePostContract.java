@@ -24,6 +24,8 @@ public final class SinglePostContract {
         public static final String COLUMN_NAME_VOTECOUNT = "votes";
         public static final String COLUMN_NAME_IMAGE_LINK = "image";
         public static final String COLUMN_NAME_SUBREDDIT_NAME = "subreddit_name";
+        public static final String COLUMN_NAME_TYPE = "type";
+        public static final String COLUMN_NAME_URL = "url";
     }
 
     public static final String SQL_CREATE_ENTRIES =
@@ -34,7 +36,9 @@ public final class SinglePostContract {
                     PostTableEntry.COLUMN_NAME_COMMENTS + " INTEGER," +
                     PostTableEntry.COLUMN_NAME_VOTECOUNT + " INTEGER," +
                     PostTableEntry.COLUMN_NAME_IMAGE_LINK + " TEXT," +
-                    PostTableEntry.COLUMN_NAME_SUBREDDIT_NAME + " TEXT" +
+                    PostTableEntry.COLUMN_NAME_SUBREDDIT_NAME + " TEXT," +
+                    PostTableEntry.COLUMN_NAME_TYPE + " INTEGER," +
+                    PostTableEntry.COLUMN_NAME_URL + " TEXT" +
                     ")";
 
     public static final String SQL_DELETE_ENTRIES =

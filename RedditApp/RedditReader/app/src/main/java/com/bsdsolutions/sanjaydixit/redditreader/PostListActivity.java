@@ -46,6 +46,8 @@ import java.util.Set;
 import static android.R.attr.data;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.CONTENT_AUTHORITY;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_SUBREDDIT_NAME;
+import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_TYPE;
+import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_URL;
 import static com.bsdsolutions.sanjaydixit.redditreader.util.Utils.INTENT_PARCELABLE_EXTRA_KEY;
 import static com.bsdsolutions.sanjaydixit.redditreader.util.Utils.getSubscribedRedditSet;
 
@@ -137,6 +139,8 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
         Set<String> subreddits = getSubscribedRedditSet(getApplicationContext());
         if(subreddits == null || subreddits.size() < 1) {
             mSwipeRefreshLayout.setRefreshing(false);
+            mAdapter.changeCursor(null);
+            mAdapter.notifyDataSetChanged();
             Toast.makeText(getApplicationContext(),"Select atleast one subreddit to view posts.",Toast.LENGTH_LONG).show();
             return;
         }
@@ -233,7 +237,8 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
                     }
                     inList.append("?");
                 }
-                return new CursorLoader(PostListActivity.this, SinglePostContract.POST_TABLE_PATH,null,COLUMN_NAME_SUBREDDIT_NAME + " IN (" + inList.toString() + ")",subreddits.toArray(new String[subreddits.size()]),null);
+                String sortOrder = SinglePostContract.PostTableEntry._ID + " DESC";
+                return new CursorLoader(PostListActivity.this, SinglePostContract.POST_TABLE_PATH,null,COLUMN_NAME_SUBREDDIT_NAME + " IN (" + inList.toString() + ")",subreddits.toArray(new String[subreddits.size()]),sortOrder);
         }
         return null;
     }
@@ -342,9 +347,11 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
             String title = mCursor.getString(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_TITLE));
             String image = mCursor.getString(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_IMAGE_LINK));
             String subredditId = mCursor.getString(mCursor.getColumnIndex(COLUMN_NAME_SUBREDDIT_NAME));
+            String type = mCursor.getString(mCursor.getColumnIndex(COLUMN_NAME_TYPE));
+            String url = mCursor.getString(mCursor.getColumnIndex(COLUMN_NAME_URL));
             int commentCount = mCursor.getInt(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_COMMENTS));
             int voteCount = mCursor.getInt(mCursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_VOTECOUNT));
-            PostItemList.SinglePost post = new PostItemList.SinglePost(id,title,image,subredditId,commentCount,voteCount);
+            PostItemList.SinglePost post = new PostItemList.SinglePost(id,title,image,subredditId,type,url,commentCount,voteCount);
             return post;
         }
 

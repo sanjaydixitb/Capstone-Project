@@ -26,6 +26,8 @@ import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_IMAGE_LINK;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_SUBREDDIT_NAME;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_TITLE;
+import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_TYPE;
+import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_URL;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_VOTECOUNT;
 import static com.bsdsolutions.sanjaydixit.redditreader.util.Utils.getSubscribedRedditSet;
 
@@ -54,7 +56,7 @@ public class RedditReaderWidgetRemoteViewsService extends IntentService {
         Cursor cursor = null;
         if (message == null) {
             String sort = "RANDOM() LIMIT " + widgetIds.length;
-            String[] projection = {COLUMN_NAME_ID, COLUMN_NAME_TITLE, COLUMN_NAME_COMMENTS, COLUMN_NAME_VOTECOUNT, COLUMN_NAME_IMAGE_LINK, COLUMN_NAME_SUBREDDIT_NAME};
+            String[] projection = {COLUMN_NAME_ID, COLUMN_NAME_TITLE, COLUMN_NAME_COMMENTS, COLUMN_NAME_VOTECOUNT, COLUMN_NAME_IMAGE_LINK, COLUMN_NAME_SUBREDDIT_NAME, COLUMN_NAME_TYPE, COLUMN_NAME_URL};
             Set<String> subredditSet = getSubscribedRedditSet(getApplicationContext());
             if(subredditSet == null || subredditSet.size() < 1) {
                 message = getString(R.string.message_no_valid_submissions);
@@ -95,9 +97,11 @@ public class RedditReaderWidgetRemoteViewsService extends IntentService {
                 String title = cursor.getString(cursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_TITLE));
                 String image = cursor.getString(cursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_IMAGE_LINK));
                 String subredditId = cursor.getString(cursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_SUBREDDIT_NAME));
+                String type = cursor.getString(cursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_TYPE));
+                String url = cursor.getString(cursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_URL));
                 int commentCount = cursor.getInt(cursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_COMMENTS));
                 int voteCount = cursor.getInt(cursor.getColumnIndex(SinglePostContract.PostTableEntry.COLUMN_NAME_VOTECOUNT));
-                PostItemList.SinglePost post = new PostItemList.SinglePost(id,title,image,subredditId,commentCount,voteCount);
+                PostItemList.SinglePost post = new PostItemList.SinglePost(id,title,image,subredditId,type,url,commentCount,voteCount);
                 List<PostItemList.SinglePost> postList = new ArrayList<>();
                 postList.add(post);
                 i.putParcelableArrayListExtra(Utils.INTENT_PARCELABLE_EXTRA_KEY, (ArrayList<? extends Parcelable>) postList);

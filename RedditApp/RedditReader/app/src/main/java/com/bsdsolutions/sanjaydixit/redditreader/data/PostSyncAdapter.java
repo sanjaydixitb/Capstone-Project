@@ -38,10 +38,8 @@ public class PostSyncAdapter extends AbstractThreadedSyncAdapter {
     private ContentResolver mContentResolver;
     public static final String ACCOUNT_TYPE = "redditreader.sanjaydixit.bsdsolutions.com";
 
-    private static final String ARG_SYNC_PENDING = "SYNC_PENDING";
-
-    public static final int SYNC_INTERVAL = 60 * 60; // 1 hour
-    public static final int SYNC_FLEXTIME = 60 * 10; // 10 minutes
+    public static final int SYNC_INTERVAL = 5; // 60 * 60; // 1 hour
+    public static final int SYNC_FLEXTIME = 5; //60 * 10; // 10 minutes
 
     public PostSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
@@ -172,6 +170,8 @@ public class PostSyncAdapter extends AbstractThreadedSyncAdapter {
             values.put(SinglePostContract.PostTableEntry.COLUMN_NAME_VOTECOUNT, String.valueOf(submission.getScore()));
             values.put(SinglePostContract.PostTableEntry.COLUMN_NAME_IMAGE_LINK, String.valueOf(submission.getThumbnail()));
             values.put(SinglePostContract.PostTableEntry.COLUMN_NAME_SUBREDDIT_NAME, String.valueOf(submission.getSubredditName()));
+            values.put(SinglePostContract.PostTableEntry.COLUMN_NAME_TYPE, submission.getPostHint().toString());
+            values.put(SinglePostContract.PostTableEntry.COLUMN_NAME_URL, submission.getUrl());
             try {
                 cr.insert(SinglePostContract.POST_TABLE_PATH, values);
             } catch (Exception e) {
