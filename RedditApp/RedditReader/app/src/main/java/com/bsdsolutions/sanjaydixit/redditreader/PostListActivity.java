@@ -43,6 +43,7 @@ import net.dean.jraw.http.oauth.OAuthException;
 import java.util.ArrayList;
 import java.util.Set;
 
+import static android.R.attr.data;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.CONTENT_AUTHORITY;
 import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_SUBREDDIT_NAME;
 import static com.bsdsolutions.sanjaydixit.redditreader.util.Utils.INTENT_PARCELABLE_EXTRA_KEY;
@@ -66,7 +67,7 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
     private static final int LOADER_ID = 1;
     public static String TAG = "SanjayRedditReader";
     private SimpleItemRecyclerViewAdapter mAdapter;
-    private SwipeRefreshLayout mSwipeRefreshLayout;
+    private SwipeRefreshLayout mSwipeRefreshLayout = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -131,9 +132,13 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
     }
 
     public void refreshItems(boolean restartLoader) {
+        if(restartLoader) {
+            if (getSupportLoaderManager().getLoader(LOADER_ID) != null)
+                getSupportLoaderManager().restartLoader(LOADER_ID, null, this);
+            else
+                getSupportLoaderManager().initLoader(LOADER_ID, null, this);
+        }
         PostSyncAdapter.syncNow(getApplicationContext(), CONTENT_AUTHORITY, null);
-        if(restartLoader)
-            getSupportLoaderManager().restartLoader(LOADER_ID, null, this);
     }
 
     public void displaySubredditSelectorActivity() {
@@ -206,8 +211,12 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
         switch(id) {
             case LOADER_ID:
                 Set<String> subreddits = getSubscribedRedditSet(getApplicationContext());
-                if(subreddits == null || subreddits.size() < 1)
+                if(subreddits == null || subreddits.size() < 1) {
+                    mAdapter.changeCursor(null);
+                    if(mSwipeRefreshLayout != null)
+                        mSwipeRefreshLayout.setRefreshing(false);
                     return null;
+                }
                 int argcount = subreddits.size(); // number of IN arguments
                 StringBuilder inList = new StringBuilder(argcount * 2);
                 for (int i = 0; i < argcount; i++) {

@@ -1,7 +1,9 @@
 package com.bsdsolutions.sanjaydixit.redditreader;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
@@ -32,6 +34,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static java.security.AccessController.getContext;
+
 public class SubredditSelectorActivity extends AppCompatActivity implements SubredditLoaderCallbackInterface {
     private Tracker mTracker;
     private DownloadSubredditsTask mDownloadTask;
@@ -39,15 +43,25 @@ public class SubredditSelectorActivity extends AppCompatActivity implements Subr
 
     private Set<String> mSelectedSubredditSet = null;
 
+    private SwipeRefreshLayout mSwipeRefreshLayout;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_subreddit_selector);
 
         mTracker = ((App)getApplication()).getDefaultTracker();
-        mDownloadTask = new DownloadSubredditsTask(this, this);
 
         View recyclerView = findViewById(R.id.subreddit_list);
+        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swiperefreshsubredditSelector);
+
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                refreshList();
+            }
+        });
+
         assert recyclerView != null;
         mAdapter = new SubredditSelectorAdapter();
         ((RecyclerView)recyclerView).setAdapter(mAdapter);
@@ -56,20 +70,28 @@ public class SubredditSelectorActivity extends AppCompatActivity implements Subr
 
     }
 
+    private void refreshList() {
+        mTracker.setScreenName(getString(R.string.activity_subreddit_selector));
+        mTracker.send(new HitBuilders.ScreenViewBuilder().build());
+        mSwipeRefreshLayout.setRefreshing(true);
+        mDownloadTask = new DownloadSubredditsTask(this, this);
+        mDownloadTask.execute();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
         setTitle(R.string.activity_subreddit_selector);
-        mTracker.setScreenName(getString(R.string.activity_subreddit_selector));
-        mTracker.send(new HitBuilders.ScreenViewBuilder().build());
         mSelectedSubredditSet.clear();
         mSelectedSubredditSet.addAll(Utils.getSubscribedRedditSet(getApplicationContext()));
-        mDownloadTask.execute();
+        refreshList();
     }
 
     @Override
     protected void onPause() {
         Utils.setSubscribedRedditSet(getApplicationContext(),mSelectedSubredditSet);
+        Intent dataUpdatedIntent = new Intent(Utils.UPDATE_APP_WIDGET).setPackage(getPackageName());
+        sendBroadcast(dataUpdatedIntent);
         super.onPause();
     }
 
@@ -80,6 +102,7 @@ public class SubredditSelectorActivity extends AppCompatActivity implements Subr
         mAdapter.mItems.clear();
         mAdapter.mItems.addAll(subredditInformationList);
         mAdapter.notifyDataSetChanged();
+        mSwipeRefreshLayout.setRefreshing(false);
     }
 
     public class SubredditSelectorAdapter extends RecyclerView.Adapter<SubredditSelectorViewHolder> {
@@ -188,8 +211,6 @@ public class SubredditSelectorActivity extends AppCompatActivity implements Subr
                 information.displayName = subreddit.getDisplayName();
                 subredditInformationList.add(information);
             }
-
-            //TODO:remove subreddits not selected anymore
 
             return subredditInformationList;
         }
