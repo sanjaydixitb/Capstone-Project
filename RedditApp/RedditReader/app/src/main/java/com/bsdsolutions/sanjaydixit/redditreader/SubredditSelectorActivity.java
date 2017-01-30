@@ -86,6 +86,7 @@ public class SubredditSelectorActivity extends AppCompatActivity implements Subr
         mSelectedSubredditSet.clear();
         mSelectedSubredditSet.addAll(Utils.getSubscribedRedditSet(getApplicationContext()));
         refreshList();
+        Toast.makeText(getApplicationContext(),"Press back to dismiss subreddit selector page.",Toast.LENGTH_LONG).show();
     }
 
     @Override

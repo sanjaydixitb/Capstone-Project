@@ -1,0 +1,1224 @@
+diff --git a/RedditApp/RedditReader/app/build.gradle b/RedditApp/RedditReader/app/build.gradle
+index cd8e4ec..cbe45b8 100644
+--- a/RedditApp/RedditReader/app/build.gradle
++++ b/RedditApp/RedditReader/app/build.gradle
+@@ -28,6 +28,10 @@ android {
+         pickFirst  'META-INF/license.txt'
+         pickFirst  'META-INF/LICENSE'
+     }
++
++    dataBinding {
++        enabled = true
++    }
+ }
+ 
+ dependencies {
+@@ -44,6 +48,7 @@ dependencies {
+     compile "net.dean.jraw:JRAW:0.9.0"
+     compile 'com.google.android.gms:play-services-analytics:10.0.1'
+     compile 'com.google.firebase:firebase-ads:10.0.1'
++    compile 'org.apache.commons:commons-lang3:3.4'
+     testCompile 'junit:junit:4.12'
+     compile 'com.android.support:cardview-v7:25.1.0'
+ }
+diff --git a/RedditApp/RedditReader/app/src/main/AndroidManifest.xml b/RedditApp/RedditReader/app/src/main/AndroidManifest.xml
+index 2cb8d9c..c9fc408 100644
+--- a/RedditApp/RedditReader/app/src/main/AndroidManifest.xml
++++ b/RedditApp/RedditReader/app/src/main/AndroidManifest.xml
+@@ -19,7 +19,7 @@
+         android:supportsRtl="true"
+         android:theme="@style/AppTheme">
+         <provider
+-            android:name=".data.PostListContentProvider"
++            android:name=".data.RedditReaderContentProvider"
+             android:authorities="com.bsdsolutions.sanjaydixit.redditreader"
+             android:exported="false"
+             android:syncable="true" />
+diff --git a/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/PostDetailActivity.java b/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/PostDetailActivity.java
+index cd60e36..669d033 100644
+--- a/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/PostDetailActivity.java
++++ b/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/PostDetailActivity.java
+@@ -1,81 +1,147 @@
+ package com.bsdsolutions.sanjaydixit.redditreader;
+ 
++import android.app.Activity;
+ import android.content.Intent;
++import android.database.Cursor;
+ import android.os.Bundle;
++import android.os.Handler;
+ import android.support.design.widget.FloatingActionButton;
+ import android.support.design.widget.Snackbar;
++import android.support.v4.app.Fragment;
++import android.support.v4.app.LoaderManager;
++import android.support.v4.content.Loader;
+ import android.support.v7.widget.Toolbar;
+ import android.view.View;
+ import android.support.v7.app.AppCompatActivity;
+ import android.support.v7.app.ActionBar;
+ import android.view.MenuItem;
+ 
++import com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract;
++import com.bsdsolutions.sanjaydixit.redditreader.util.Utils;
++import com.google.android.gms.analytics.HitBuilders;
++import com.google.android.gms.analytics.Tracker;
++
+ /**
+  * An activity representing a single Post detail screen. This
+  * activity is only used narrow width devices. On tablet-size devices,
+  * item details are presented side-by-side with a list of items
+  * in a {@link PostListActivity}.
+  */
+-public class PostDetailActivity extends AppCompatActivity {
++public class PostDetailActivity extends AppCompatActivity implements
++        PostDetailFragment.Callbacks,
++        LoaderManager.LoaderCallbacks<Cursor> {
++
++    public static final String EXTRA_SUBMISSION_ID = PostDetailActivity.class.getCanonicalName() + ".extra.SUBMISSION_ID";
++
++    private boolean mTabletMode;
++
++    private Handler mHandler = new Handler();
++
++    private long mSubmissionId;
++
++    private Tracker mTracker;
+ 
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
+         setContentView(R.layout.activity_post_detail);
+-        Toolbar toolbar = (Toolbar) findViewById(R.id.detail_toolbar);
+-        setSupportActionBar(toolbar);
+-
+-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+-        fab.setOnClickListener(new View.OnClickListener() {
+-            @Override
+-            public void onClick(View view) {
+-                Snackbar.make(view, "Replace with your own detail action", Snackbar.LENGTH_LONG)
+-                        .setAction("Action", null).show();
+-            }
+-        });
+ 
+-        // Show the Up button in the action bar.
++        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
++        setSupportActionBar(toolbar);
+         ActionBar actionBar = getSupportActionBar();
+         if (actionBar != null) {
+             actionBar.setDisplayHomeAsUpEnabled(true);
++            actionBar.setDisplayShowHomeEnabled(true);
+         }
+ 
+-        // savedInstanceState is non-null when there is fragment state
+-        // saved from previous configurations of this activity
+-        // (e.g. when rotating the screen from portrait to landscape).
+-        // In this case, the fragment will automatically be re-added
+-        // to its container so we don't need to manually add it.
+-        // For more information, see the Fragments API guide at:
+-        //
+-        // http://developer.android.com/guide/components/fragments.html
+-        //
++        mTabletMode = getResources().getBoolean(R.bool.tablet_mode);
++
+         if (savedInstanceState == null) {
+-            // Create the detail fragment and add it to the activity
+-            // using a fragment transaction.
+-            Bundle arguments = new Bundle();
+-            arguments.putParcelable(PostDetailFragment.ARG_ITEM,
+-                    getIntent().getParcelableExtra(PostDetailFragment.ARG_ITEM));
+-            PostDetailFragment fragment = new PostDetailFragment();
+-            fragment.setArguments(arguments);
+-            getSupportFragmentManager().beginTransaction()
+-                    .add(R.id.post_detail_container, fragment)
+-                    .commit();
++            mSubmissionId = getIntent().getLongExtra(EXTRA_SUBMISSION_ID, -1);
++        } else {
++            mSubmissionId = savedInstanceState.getLong(EXTRA_SUBMISSION_ID, -1);
+         }
++
++        mTracker = ((App)getApplication()).getDefaultTracker();
+     }
+ 
+     @Override
+-    public boolean onOptionsItemSelected(MenuItem item) {
+-        int id = item.getItemId();
+-        if (id == android.R.id.home) {
+-            // This ID represents the Home or Up button. In the case of this
+-            // activity, the Up button is shown. For
+-            // more details, see the Navigation pattern on Android Design:
+-            //
+-            // http://developer.android.com/design/patterns/navigation.html#up-vs-back
+-            //
+-            navigateUpTo(new Intent(this, PostListActivity.class));
+-            return true;
++    protected void onSaveInstanceState(Bundle outState) {
++        super.onSaveInstanceState(outState);
++        outState.putLong(EXTRA_SUBMISSION_ID, mSubmissionId);
++    }
++
++    @Override
++    protected void onResume() {
++        super.onResume();
++
++        // if fragment is not loaded, we start submission loader
++        // fragment will be instantiated when loader finishes retrieving data
++        if (getSupportFragmentManager().findFragmentById(R.id.fragment_container) == null) {
++            Bundle args = new Bundle();
++            args.putLong(EXTRA_SUBMISSION_ID, mSubmissionId);
++            getSupportLoaderManager().initLoader(Utils.SUBMISSION_BY_ID_LOADER, args, this);
++        }
++
++        mTracker.setScreenName(getString(R.string.activity_comments_list));
++        mTracker.send(new HitBuilders.ScreenViewBuilder().build());
++    }
++
++    @Override
++    public void onSubmissionReply(long submissionId, String submissionText) {
++        //TODO: Handle post
++    }
++
++    @Override
++    public void onCommentReply(long commentId, String commentText) {
++        //TODO: Comment Reply
++    }
++
++    @Override
++    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
++        super.onActivityResult(requestCode, resultCode, data);
++        //TODO: Handle result
++    }
++
++    @Override
++    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
++        if (id == Consts.SUBMISSION_BY_ID_LOADER) {
++            return new SubmissionByIdLoader(this, args.getLong(EXTRA_SUBMISSION_ID));
++        } else {
++            throw new IllegalArgumentException("unknown loader ID!");
++        }
++    }
++
++    @Override
++    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
++        if (data == null || !data.moveToFirst()) {
++            //Display error message
++        } else {
++            final long submissionId = data.getLong(CommentsLoader.COL_ID);
++            final String submissionTitle = data.getString(SinglePostContract.PostTableEntry.);
++            final boolean submissionReadOnly = data.getInt(CommentsLoader.COL_READ_ONLY) == 1;
++            mHandler.post(new Runnable() {
++                @Override
++                public void run() {
++                    Fragment fragment = PostDetailFragment.create(submissionId, submissionTitle, submissionReadOnly);
++                    getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
++                }
++            });
++        }
++
++        if (data != null) {
++            data.close();
++        }
++    }
++
++    @Override
++    public void onLoaderReset(Loader<Cursor> loader) {}
++
++    @Override
++    public void onCommentSubmitted() {
++        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
++        if (fragment != null && fragment instanceof PostDetailFragment) {
++            ((PostDetailFragment) fragment).reloadComments();
+         }
+-        return super.onOptionsItemSelected(item);
+     }
+ }
+diff --git a/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/PostDetailFragment.java b/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/PostDetailFragment.java
+index f594017..73f716d 100644
+--- a/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/PostDetailFragment.java
++++ b/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/PostDetailFragment.java
+@@ -1,31 +1,66 @@
+ package com.bsdsolutions.sanjaydixit.redditreader;
+ 
+ import android.app.Activity;
++import android.content.BroadcastReceiver;
++import android.content.Context;
+ import android.content.Intent;
++import android.content.IntentFilter;
++import android.content.SharedPreferences;
+ import android.content.pm.PackageManager;
++import android.database.Cursor;
++import android.databinding.DataBindingUtil;
+ import android.net.Uri;
++import android.os.AsyncTask;
++import android.preference.PreferenceManager;
++import android.support.annotation.Nullable;
+ import android.support.design.widget.CollapsingToolbarLayout;
+ import android.os.Bundle;
++import android.support.design.widget.Snackbar;
+ import android.support.v4.app.Fragment;
++import android.support.v4.app.LoaderManager;
++import android.support.v4.content.Loader;
++import android.support.v4.content.LocalBroadcastManager;
++import android.support.v7.widget.LinearLayoutManager;
++import android.text.Html;
++import android.util.Log;
+ import android.view.LayoutInflater;
++import android.view.MenuItem;
+ import android.view.View;
+ import android.view.ViewGroup;
+ import android.webkit.MimeTypeMap;
+ import android.widget.ImageView;
+ import android.widget.TextView;
++import android.widget.Toast;
+ 
+ import com.bsdsolutions.sanjaydixit.redditreader.content.PostItemList;
++import com.bsdsolutions.sanjaydixit.redditreader.databinding.CommentsListItemBinding;
++import com.bsdsolutions.sanjaydixit.redditreader.databinding.FragmentCommentsListBinding;
++import com.bsdsolutions.sanjaydixit.redditreader.util.GetCommentsTask;
++import com.bsdsolutions.sanjaydixit.redditreader.util.UtilityService;
++import com.bsdsolutions.sanjaydixit.redditreader.util.Utils;
++import com.google.android.gms.ads.AdRequest;
++import com.google.android.gms.analytics.HitBuilders;
++import com.google.android.gms.analytics.Tracker;
+ import com.squareup.picasso.Picasso;
+ 
++import net.dean.jraw.auth.AuthenticationManager;
++import net.dean.jraw.models.CommentNode;
+ import net.dean.jraw.models.Submission;
+ 
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Map;
++
++import static android.R.attr.key;
++
+ /**
+  * A fragment representing a single Post detail screen.
+  * This fragment is either contained in a {@link PostListActivity}
+  * in two-pane mode (on tablets) or a {@link PostDetailActivity}
+  * on handsets.
+  */
+-public class PostDetailFragment extends Fragment {
++public class PostDetailFragment extends Fragment implements LoaderManager.LoaderCallbacks,
++        SharedPreferences.OnSharedPreferenceChangeListener, CommentsListAdapter.ActionCallbacks {
+     /**
+      * The fragment argument representing the item ID that this fragment
+      * represents.
+@@ -37,13 +72,64 @@ public class PostDetailFragment extends Fragment {
+      */
+     private PostItemList.SinglePost mItem;
+ 
++    public static int GET_COMMENTS_TASK = 8;
++    public static int COMMENTS_LOADER = 9;
++    String GA_ACTION_COMMENT_UPVOTE = "Upvote Comment";
++    String GA_ACTION_COMMENT_DOWNVOTE = "Downvote Comment";
++    String GA_ACTION_COMMENT_UNVOTE = "Unvote Comment";
++    String GA_CATEGORY_ACTION = "Action";
++    String GA_ACTION_RELOAD_COMMENTS = "Reload Comments";
++
+     private ImageView mImageView = null;
+ 
+     /**
+      * Mandatory empty constructor for the fragment manager to instantiate the
+      * fragment (e.g. upon screen orientation changes).
+      */
++
++    public static final String ARG_SUBMISSION_ID = "SUBMISSION_ID";
++    public static final String ARG_SUBMISSION_TITLE = "SUBMISSION_TITLE";
++    public static final String ARG_SUBMISSION_READ_ONLY = "SUBMISSION_READ_ONLY";
++
++
++    private long mSubmissionId;
++    private String mSubmissionTitle;
++    private boolean mSubmissionReadOnly;
++
++    private CommentsListAdapter mAdapter;
++
++    private MenuItem mRefreshMenuItem;
++
++    private MenuItem mReplyMenuItem;
++
++    private Callbacks mHost;
++
++    private FragmentCommentsListBinding mBinding;
++
++    List<BroadcastReceiver> mReceivers = new ArrayList<>();
++
++    private Tracker mTracker;
++
++    public interface Callbacks {
++        void onSubmissionReply(long submissionId, String submissionText);
++        void onCommentReply(long commentId, String commentText);
++    }
++
++    public static PostDetailFragment create(long submissionId, String submissionTitle, boolean submissionReadOnly) {
++        PostDetailFragment fragment = new PostDetailFragment();
++
++        Bundle args = new Bundle();
++        args.putLong(ARG_SUBMISSION_ID, submissionId);
++        args.putString(ARG_SUBMISSION_TITLE, submissionTitle);
++        args.putBoolean(ARG_SUBMISSION_READ_ONLY, submissionReadOnly);
++
++        fragment.setArguments(args);
++
++        return fragment;
++    }
++
+     public PostDetailFragment() {
++        setHasOptionsMenu(true);
+     }
+ 
+     @Override
+@@ -59,74 +145,274 @@ public class PostDetailFragment extends Fragment {
+             Activity activity = this.getActivity();
+             CollapsingToolbarLayout appBarLayout = (CollapsingToolbarLayout) activity.findViewById(R.id.toolbar_layout);
+             mImageView = (ImageView) activity.findViewById(R.id.detail_image_view);
+-            if (appBarLayout != null) {
+-                appBarLayout.setTitle(mItem.title);
+-                final String itemType = mItem.type;
+-                final String url = mItem.url;
+-                appBarLayout.setOnClickListener(new View.OnClickListener() {
+-                    @Override
+-                    public void onClick(View view) {
+-                        Intent i = new Intent();
+-                        i.setAction(Intent.ACTION_VIEW);
+-
+-                        String mimeType = null;
+-                        String fileExt = null;
+-
+-
+-                        if (Submission.PostHint.IMAGE.toString().equals(itemType)) {
+-                            //Image
+-                            fileExt = MimeTypeMap.getFileExtensionFromUrl(url);
+-                            if (!"".equals(fileExt)) {
+-                                mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExt);
+-                            }
+-                        } else if (Submission.PostHint.LINK.toString().equals(itemType)) {
+-                            //Link
+-                        } else if (Submission.PostHint.SELF.toString().equals(itemType)) {
+-                            //Text
+-                            return;
+-                        } else if (Submission.PostHint.VIDEO.toString().equals(itemType)) {
+-                            //Video
+-                            fileExt = MimeTypeMap.getFileExtensionFromUrl(url);
+-                            if (!"".equals(fileExt)) {
+-                                mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExt);
+-                            }
+-                        } else {
+-                            return;
+-                            //Unknown
++            final String itemType = mItem.type;
++            final String url = mItem.url;
++            View.OnClickListener clickListener = new View.OnClickListener() {
++                @Override
++                public void onClick(View view) {
++                    Intent i = new Intent();
++                    i.setAction(Intent.ACTION_VIEW);
++
++                    String mimeType = null;
++                    String fileExt = null;
++
++                    if (Submission.PostHint.IMAGE.toString().equals(itemType)) {
++                        //Image
++                        fileExt = MimeTypeMap.getFileExtensionFromUrl(url);
++                        if (!"".equals(fileExt)) {
++                            mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExt);
+                         }
+-                        if (mimeType == null) {
+-                            i.setData(Uri.parse(url));
++                    } else if (Submission.PostHint.LINK.toString().equals(itemType)) {
++                        //Link
++                    } else if (Submission.PostHint.SELF.toString().equals(itemType)) {
++                        //Text
++                        return;
++                    } else if (Submission.PostHint.VIDEO.toString().equals(itemType)) {
++                        //Video
++                        fileExt = MimeTypeMap.getFileExtensionFromUrl(url);
++                        if (!"".equals(fileExt)) {
++                            mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExt);
++                        }
++                    } else {
++                        return;
++                        //Unknown
++                    }
++                    if (mimeType == null) {
++                        i.setData(Uri.parse(url));
++                        getContext().startActivity(i);
++                    } else {
++
++                        i.setDataAndType(Uri.parse(url), mimeType);
++                        if (getContext().getPackageManager().resolveActivity(i, PackageManager.MATCH_ALL) != null) {
+                             getContext().startActivity(i);
+                         } else {
+-
+-                            i.setDataAndType(Uri.parse(url), mimeType);
+-                            if (getContext().getPackageManager().resolveActivity(i, PackageManager.MATCH_ALL) != null) {
+-                                getContext().startActivity(i);
+-                            } else {
+-                                // remove specific type and try again
+-                                i.setData(Uri.parse(url));
+-                                getContext().startActivity(i);
+-                            }
++                            // remove specific type and try again
++                            i.setData(Uri.parse(url));
++                            getContext().startActivity(i);
+                         }
+                     }
+-                });
++                }
++            };
++            if (appBarLayout != null) {
++                appBarLayout.setTitle(mItem.title);
++                appBarLayout.setOnClickListener(clickListener);
++            } else {
++                if(mImageView != null) {
++                    mImageView.setOnClickListener(clickListener);
++                }
+             }
+         }
+     }
+ 
+     @Override
++    public void onAttach(Context context) {
++        super.onAttach(context);
++        if (context instanceof Callbacks) {
++            mHost = (Callbacks) context;
++        } else {
++            throw new ClassCastException(context.getClass().getCanonicalName() + " must implement " + Callbacks.class.getCanonicalName());
++        }
++    }
++
++    @Override
++    public void onDetach() {
++        super.onDetach();
++        mHost = null;
++    }
++
++    @Override
++    public void onResume() {
++        super.onResume();
++        PreferenceManager.getDefaultSharedPreferences(getContext()).registerOnSharedPreferenceChangeListener(this);
++
++        BroadcastReceiver receiver = new CommentActionsReceiver();
++        IntentFilter iff = new IntentFilter(UtilityService.ACTION_LOAD_MORE_COMMENTS);
++        LocalBroadcastManager.getInstance(getContext()).registerReceiver(receiver, iff);
++        mReceivers.add(receiver);
++
++        receiver = new CommentActionsReceiver();
++        iff = new IntentFilter(UtilityService.ACTION_EXPAND_COLLAPSE_COMMENT);
++        LocalBroadcastManager.getInstance(getContext()).registerReceiver(receiver, iff);
++        mReceivers.add(receiver);
++    }
++
++    @Override
++    public void onPause() {
++        super.onPause();
++        PreferenceManager.getDefaultSharedPreferences(getContext()).unregisterOnSharedPreferenceChangeListener(this);
++        for (BroadcastReceiver receiver : mReceivers) {
++            LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(receiver);
++        }
++    }
++
++    @Override
+     public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                              Bundle savedInstanceState) {
+-        View rootView = inflater.inflate(R.layout.post_detail, container, false);
++        //Show comments
++        if (savedInstanceState != null) {
++            mSubmissionId = savedInstanceState.getLong(ARG_SUBMISSION_ID);
++            mSubmissionTitle = savedInstanceState.getString(ARG_SUBMISSION_TITLE);
++            mSubmissionReadOnly = savedInstanceState.getBoolean(ARG_SUBMISSION_READ_ONLY);
++        } else {
++            mSubmissionId = getArguments().getLong(ARG_SUBMISSION_ID);
++            mSubmissionTitle = getArguments().getString(ARG_SUBMISSION_TITLE);
++            mSubmissionReadOnly = getArguments().getBoolean(ARG_SUBMISSION_READ_ONLY);
++        }
+ 
+-        // Show the dummy content as text in a TextView.
+-        if (mItem != null) {
+-            ((TextView) rootView.findViewById(R.id.post_detail)).setText(mItem.title);
+-            if (mItem.image != null && mItem.image.length() > 0 && mImageView != null) {
+-                Picasso.with(getContext()).load(mItem.image).into(mImageView);
+-            }
++        mBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_comments_list, container, false);
++
++        mBinding.submissionTitle.setText(Html.fromHtml(mSubmissionTitle));
++
++        mBinding.commentsList.setLayoutManager(new LinearLayoutManager(getContext()));
++
++        mAdapter = new CommentsListAdapter(
++                getContext(),
++                mBinding.listContainer,
++                mBinding.progressbar,
++                mBinding.submissionTitle,
++                this);
++
++        mBinding.commentsList.setAdapter(mAdapter);
++        return mBinding.getRoot();
++    }
++
++    @Override
++    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
++        if (s.equals(Utils.COMMENTS_TASK_STATUS_REF)) {
++            updateUi();
++        }
++    }
++
++    void updateUi() {
++        //TODO: Cleanup
++//        int taskStatus = SyncStatusUtils.getSyncStatus(getContext(), Consts.COMMENTS_TASK_STATUS_REF);
++//
++//        if (taskStatus <= SyncStatusUtils.SYNC_STATUS_IN_PROGRESS) {
++//            mAdapter.setListShown(false);
++//        } else {
++//            mAdapter.setEmptyText(SyncStatusUtils.getSyncStatusMessage(getContext(), taskStatus));
++//            mAdapter.setListShown(true);
++//        }
++//
++//        if (mRefreshMenuItem != null) {
++//            mRefreshMenuItem.setVisible(taskStatus > SyncStatusUtils.SYNC_STATUS_IN_PROGRESS);
++//        }
++//        if (mReplyMenuItem != null) {
++//            mReplyMenuItem.setVisible(taskStatus > SyncStatusUtils.SYNC_STATUS_IN_PROGRESS && !mSubmissionReadOnly);
++//        }
++
++    }
++
++    @Override
++    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
++        super.onActivityCreated(savedInstanceState);
++        getLoaderManager().initLoader(COMMENTS_LOADER, null, this);
++
++        Bundle args = new Bundle();
++        args.putLong(ARG_SUBMISSION_ID, mSubmissionId);
++        getLoaderManager().initLoader(GET_COMMENTS_TASK, args, this);
++
++        if (savedInstanceState == null) {
++            mAdapter.setListShown(false, true);
++        } else {
++            updateUi();
++        }
++
++        mTracker = ((App) getActivity().getApplication()).getDefaultTracker();
++    }
++
++    @Override
++    public Loader onCreateLoader(int id, Bundle args) {
++        if (id == COMMENTS_LOADER) {
++            return new CommentsLoader(getContext());
++        } else if (id == GET_COMMENTS_TASK) {
++            return new GetCommentsTask(getContext(), args.getLong(ARG_SUBMISSION_ID));
++        } else {
++            throw new IllegalArgumentException("unknown loader ID!");
++        }
++    }
++
++    public void reloadComments() {
++        Bundle args = new Bundle();
++        args.putLong(ARG_SUBMISSION_ID, mSubmissionId);
++        getLoaderManager().restartLoader(GET_COMMENTS_TASK, args, this);
++
++        mTracker.send(new HitBuilders.EventBuilder(GA_CATEGORY_ACTION, GA_ACTION_RELOAD_COMMENTS).build());
++    }
++
++    @Override
++    public void onLoadFinished(Loader loader, Object data) {
++        if (loader.getId() == COMMENTS_LOADER) {
++            mAdapter.swapCursor((Cursor) data);
++        }
++    }
++
++    @Override
++    public void onLoaderReset(Loader loader) {
++        if (loader.getId() == COMMENTS_LOADER) {
++            mAdapter.swapCursor(null);
+         }
++    }
++
++    @Override
++    public void onCommentReply(long commentId, String commentText) {
++        mHost.onCommentReply(commentId, commentText);
++    }
++
++    @Override
++    public void onCommentLoadMore(long commentId) {
++        UtilityService.startActionLoadMoreComments(getContext(), mSubmissionId, commentId);
++    }
++
++    @Override
++    public void onCommentExpandCollapse(long commentId) {
++        UtilityService.startActionExpandCollapseComment(getContext(), commentId);
++    }
++
++    @Override
++    public void onCommentUpvote(long commentId) {
++        submitVote(commentId, 1);
++    }
+ 
+-        return rootView;
++    @Override
++    public void onCommentDownvote(long commentId) {
++        submitVote(commentId, -1);
++    }
++
++    @Override
++    public void onCommentUnvote(long commentId) {
++        submitVote(commentId, 0);
++    }
++
++    void submitVote(long commentId, int vote) {
++        UtilityService.startActionSubmitCommentVote(getContext(), mSubmissionId, commentId, vote);
++    }
++
++    class CommentActionsReceiver extends BroadcastReceiver {
++
++        @Override
++        public void onReceive(Context context, Intent intent) {
++            Map<String, String> event;
++
++            if (!intent.getBooleanExtra(UtilityService.EXTRA_RESULT_STATUS_SUCCESS, false)) {
++                String message = intent.getStringExtra(UtilityService.EXTRA_RESULT_MESSAGE);
++                Snackbar.make(mBinding.getRoot(), message, Snackbar.LENGTH_LONG).show();
++                event = new HitBuilders.ExceptionBuilder().setDescription(message).build();
++            } else {
++                int vote = intent.getIntExtra(UtilityService.EXTRA_RESULT_VOTE, 0);
++                String action;
++                if (vote > 0) {
++                    action = GA_ACTION_COMMENT_UPVOTE;
++                } else if (vote < 0) {
++                    action = GA_ACTION_COMMENT_DOWNVOTE;
++                } else {
++                    action = GA_ACTION_COMMENT_UNVOTE;
++                }
++                event = new HitBuilders.EventBuilder(GA_CATEGORY_ACTION, action).build();
++            }
++
++            mTracker.send(event);
++        }
+     }
++
+ }
+diff --git a/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/data/PostListContentProvider.java b/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/data/PostListContentProvider.java
+deleted file mode 100644
+index 063c956..0000000
+--- a/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/data/PostListContentProvider.java
++++ /dev/null
+@@ -1,162 +0,0 @@
+-package com.bsdsolutions.sanjaydixit.redditreader.data;
+-
+-import android.content.ContentProvider;
+-import android.content.ContentValues;
+-import android.content.UriMatcher;
+-import android.database.Cursor;
+-import android.database.SQLException;
+-import android.database.sqlite.SQLiteDatabase;
+-import android.net.Uri;
+-import android.support.annotation.Nullable;
+-import android.util.Log;
+-
+-import com.bsdsolutions.sanjaydixit.redditreader.PostListActivity;
+-
+-import static com.bsdsolutions.sanjaydixit.redditreader.data.PostReaderDbHelper.DATABASE_NAME;
+-import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.CONTENT_AUTHORITY;
+-import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PATH_POSTS;
+-import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.COLUMN_NAME_ID;
+-
+-/**
+- * Created by sanjaydixit on 23/01/17.
+- */
+-
+-public class PostListContentProvider extends ContentProvider {
+-
+-    private PostReaderDbHelper mDbHelper;
+-    private static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
+-    private SQLiteDatabase db;
+-
+-    static {
+-        /*
+-         * The calls to addURI() go here, for all of the content URI patterns that the provider
+-         * should recognize. For this snippet, only the calls for table 3 are shown.
+-         */
+-
+-        /*
+-         * Sets the integer value for multiple rows in table 3 to 1. Notice that no wildcard is used
+-         * in the path
+-         */
+-        sUriMatcher.addURI(CONTENT_AUTHORITY, PATH_POSTS, 1);
+-
+-    }
+-
+-    @Override
+-    public boolean onCreate() {
+-        mDbHelper = new PostReaderDbHelper(getContext());
+-        return true;
+-    }
+-
+-    @Nullable
+-    @Override
+-    public Cursor query(Uri uri, String[] strings, String s, String[] strings1, String s1) {
+-        db = mDbHelper.getWritableDatabase();
+-        switch(sUriMatcher.match(uri)) {
+-            case 1:
+-                Cursor result = db.query(DATABASE_NAME,strings,s,strings1,null,null,s1);
+-                result.setNotificationUri(getContext().getContentResolver(), uri);
+-                return result;
+-        }
+-        return null;
+-    }
+-
+-    @Nullable
+-    @Override
+-    public String getType(Uri uri) {
+-        switch (sUriMatcher.match(uri)) {
+-            case 1:
+-                return SinglePostContract.CONTENT_DIR_TYPE;
+-            default:
+-                throw new IllegalArgumentException("Unknown Uri: " + uri);
+-        }    }
+-
+-    @Nullable
+-    @Override
+-    public Uri insert(Uri uri, ContentValues contentValues) {
+-        Uri result = null;
+-        long _id;
+-        switch(sUriMatcher.match(uri)) {
+-            case 1:
+-                db = mDbHelper.getWritableDatabase();
+-
+-                // Filter results WHERE "title" = 'My Title'
+-                String[] projection = {
+-                        SinglePostContract.PostTableEntry._ID,
+-                        COLUMN_NAME_ID,
+-                };
+-                String selection = COLUMN_NAME_ID + " = ?";
+-                String id = contentValues.getAsString(COLUMN_NAME_ID);
+-                String[] selectionArgs = {id};
+-
+-// How you want the results sorted in the resulting Cursor
+-                String sortOrder =
+-                        COLUMN_NAME_ID + " DESC";
+-
+-                Cursor tempQueryResult = db.query(
+-                        SinglePostContract.PostTableEntry.TABLE_NAME,  // The table to query
+-                        projection,                               // The columns to return
+-                        selection,                                // The columns for the WHERE clause
+-                        selectionArgs,                            // The values for the WHERE clause
+-                        null,                                     // don't group the rows
+-                        null,                                     // don't filter by row groups
+-                        sortOrder                                 // The sort order
+-                );
+-
+-                if (tempQueryResult != null && tempQueryResult.getCount() > 0) {
+-                    update(uri, contentValues, selection, selectionArgs);
+-                    _id = tempQueryResult.getColumnIndexOrThrow(COLUMN_NAME_ID);
+-                    Log.d(PostListActivity.TAG,"Updating at " + uri.toString() + "  : " + _id);
+-                } else {
+-                    _id = db.insert(SinglePostContract.PostTableEntry.TABLE_NAME, null, contentValues);
+-                    Log.d(PostListActivity.TAG,"Inserting at " + uri.toString() + "  : " + _id);
+-                }
+-                if (_id > 0) {
+-                    result = SinglePostContract.buildPostPathUri(_id);
+-                } else {
+-                    throw new SQLException("Failed to insert row into " + uri);
+-                }
+-                getContext().getContentResolver().notifyChange(uri, null);
+-                break;
+-            default:
+-                break;
+-        }
+-
+-        return result;
+-    }
+-
+-    @Override
+-    public int delete(Uri uri, String s, String[] strings) {
+-        int rowsDeleted = 0;
+-        if(s == null || s.isEmpty())
+-        {
+-            return rowsDeleted;
+-        }
+-        switch(sUriMatcher.match(uri)) {
+-            case 1:
+-                rowsDeleted = db.delete(DATABASE_NAME,s,strings);
+-                break;
+-        }
+-        if (rowsDeleted != 0) {
+-            getContext().getContentResolver().notifyChange(uri, null);
+-        }
+-        return rowsDeleted;
+-    }
+-
+-    @Override
+-    public int update(Uri uri, ContentValues contentValues, String s, String[] strings) {
+-        int rowsUpdated = 0;
+-        if(s == null || s.isEmpty())
+-        {
+-            return rowsUpdated;
+-        }
+-        switch(sUriMatcher.match(uri)) {
+-            case 1:
+-                rowsUpdated = db.update(DATABASE_NAME,contentValues,s,strings);
+-                break;
+-        }
+-        if (rowsUpdated != 0) {
+-            getContext().getContentResolver().notifyChange(uri, null);
+-        }
+-        return rowsUpdated;
+-    }
+-}
+diff --git a/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/data/PostReaderDbHelper.java b/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/data/PostReaderDbHelper.java
+index eb23d67..f0d4626 100644
+--- a/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/data/PostReaderDbHelper.java
++++ b/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/data/PostReaderDbHelper.java
+@@ -10,7 +10,7 @@ import com.bsdsolutions.sanjaydixit.redditreader.content.PostItemList;
+ 
+ import java.util.List;
+ 
+-import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.TABLE_NAME;
++import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.POST_TABLE_NAME;
+ import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.SQL_CREATE_ENTRIES;
+ import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.SQL_DELETE_ENTRIES;
+ import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry;
+@@ -22,12 +22,16 @@ import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.
+ public class PostReaderDbHelper extends SQLiteOpenHelper {
+ 
+     public static final int DATABASE_VERSION = 5;
+-    public static final String DATABASE_NAME = TABLE_NAME;
++    public static final String DATABASE_NAME = POST_TABLE_NAME;
+ 
+     public PostReaderDbHelper(Context context) {
+         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+     }
+ 
++    public static String getDbName() {
++        return DATABASE_NAME;
++    }
++
+     @Override
+     public void onCreate(SQLiteDatabase sqLiteDatabase) {
+         sqLiteDatabase.execSQL(SQL_CREATE_ENTRIES);
+@@ -89,7 +93,7 @@ public class PostReaderDbHelper extends SQLiteOpenHelper {
+ 
+                 //Delete the entry and make a new one so that new ID is newer?
+                 int count = db.delete(
+-                        PostTableEntry.TABLE_NAME,
++                        PostTableEntry.POST_TABLE_NAME,
+                         selection,
+                         selectionArgs);
+             }
+@@ -97,7 +101,7 @@ public class PostReaderDbHelper extends SQLiteOpenHelper {
+                 result.close();
+ 
+ // Insert the new row, returning the primary key value of the new row
+-            long newRowId = db.insert(PostTableEntry.TABLE_NAME, null, values);
++            long newRowId = db.insert(PostTableEntry.POST_TABLE_NAME, null, values);
+ 
+         }
+     }
+@@ -106,7 +110,7 @@ public class PostReaderDbHelper extends SQLiteOpenHelper {
+         SQLiteDatabase db = getReadableDatabase();
+ 
+         Cursor cursor = db.query(
+-                PostTableEntry.TABLE_NAME,  // The table to query
++                PostTableEntry.POST_TABLE_NAME,  // The table to query
+                 projection,                               // The columns to return
+                 selection,                                // The columns for the WHERE clause
+                 selectionArgs,                            // The values for the WHERE clause
+diff --git a/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/data/SinglePostContract.java b/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/data/SinglePostContract.java
+index 586cbe7..93989db 100644
+--- a/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/data/SinglePostContract.java
++++ b/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/data/SinglePostContract.java
+@@ -5,7 +5,7 @@ import android.content.ContentUris;
+ import android.net.Uri;
+ import android.provider.BaseColumns;
+ 
+-import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.TABLE_NAME;
++import static com.bsdsolutions.sanjaydixit.redditreader.data.SinglePostContract.PostTableEntry.POST_TABLE_NAME;
+ 
+ /**
+  * Created by sanjaydixit on 23/01/17.
+@@ -17,7 +17,7 @@ public final class SinglePostContract {
+ 
+     /* Inner class that defines the table contents */
+     public static class PostTableEntry implements BaseColumns {
+-        public static final String TABLE_NAME = "PostList";
++        public static final String POST_TABLE_NAME = "PostList";
+         public static final String COLUMN_NAME_ID = "id";
+         public static final String COLUMN_NAME_TITLE = "title";
+         public static final String COLUMN_NAME_COMMENTS = "comments";
+@@ -29,7 +29,7 @@ public final class SinglePostContract {
+     }
+ 
+     public static final String SQL_CREATE_ENTRIES =
+-            "CREATE TABLE " + TABLE_NAME + " (" +
++            "CREATE TABLE " + POST_TABLE_NAME + " (" +
+                     PostTableEntry._ID + " INTEGER PRIMARY KEY," +
+                     PostTableEntry.COLUMN_NAME_ID + " TEXT," +
+                     PostTableEntry.COLUMN_NAME_TITLE + " TEXT," +
+@@ -42,15 +42,15 @@ public final class SinglePostContract {
+                     ")";
+ 
+     public static final String SQL_DELETE_ENTRIES =
+-            "DROP TABLE IF EXISTS " + TABLE_NAME;
++            "DROP TABLE IF EXISTS " + POST_TABLE_NAME;
+ 
+     public static final String CONTENT_AUTHORITY = "com.bsdsolutions.sanjaydixit.redditreader";
+     public static final Uri BASE_CONTENT_URI = Uri.parse("content://" + CONTENT_AUTHORITY);
+ 
+     public static final String PATH_POSTS = "posts";
+ 
+-    public static final String CONTENT_DIR_TYPE = ContentResolver.CURSOR_DIR_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + TABLE_NAME;
+-    public static final String CONTENT_ITEM_TYPE = ContentResolver.CURSOR_ITEM_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + TABLE_NAME;
++    public static final String CONTENT_DIR_TYPE = ContentResolver.CURSOR_DIR_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + POST_TABLE_NAME;
++    public static final String CONTENT_ITEM_TYPE = ContentResolver.CURSOR_ITEM_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + POST_TABLE_NAME;
+ 
+     public static final Uri POST_TABLE_PATH = BASE_CONTENT_URI.buildUpon().appendPath(PATH_POSTS).build();
+ 
+diff --git a/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/util/Utils.java b/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/util/Utils.java
+index d45b0c5..2373ae5 100644
+--- a/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/util/Utils.java
++++ b/RedditApp/RedditReader/app/src/main/java/com/bsdsolutions/sanjaydixit/redditreader/util/Utils.java
+@@ -6,6 +6,9 @@ import android.content.SharedPreferences;
+ import java.util.HashSet;
+ import java.util.Set;
+ 
++import org.apache.commons.lang3.StringEscapeUtils;
++
++
+ /**
+  * Created by sanjaydixit on 23/01/17.
+  */
+@@ -18,6 +21,9 @@ public class Utils {
+     public static final String SUBREDDIT_SET_SHARED_PREFS_KEY = "subreddit_set_shared_prefs_key";
+ 
+     public static final String SUBREDDIT_SET_SHARED_PREFS_FILE_NAME = "subreddit_set_shared_prefs_file_name";
++    public static final int SYNC_STATUS_OK = 0;
++    public static final int SYNC_STATUS_NO_AUTHORIZATION = -1;
++    public static final int SYNC_STATUS_SERVER_INVALID = -2;
+ 
+     public static Set<String> getSubscribedRedditSet(Context context) {
+         Set<String> subredditSet = new HashSet<>();
+@@ -32,4 +38,30 @@ public class Utils {
+         editor.putStringSet(SUBREDDIT_SET_SHARED_PREFS_KEY,subredditSet);
+         editor.apply();
+     }
++
++    public static int dpToPixel(Context ctx, int dp) {
++        return (int) (ctx.getResources().getDisplayMetrics().density * dp + 0.5f);
++    }
++
++    public interface CommentType {
++        int MORE_COMMENTS = 0;
++        int NO_REPLIES_EXPANDED = 1;
++        int NO_REPLIES_COLLAPSED = 2;
++        int WITH_REPLIES_EXPANDED = 3;
++        int WITH_REPLIES_COLLAPSED = 4;
++    }
++
++    public static String processRedditHtmlContent(String commentHtml) {
++        String commentBody = StringEscapeUtils.unescapeHtml4(commentHtml);
++        commentBody = commentBody.replace("href=\"/u/", "href=\"https://www.reddit.com/u/");
++        commentBody = commentBody.replace("href=\"/r/", "href=\"https://www.reddit.com/r/");
++        return commentBody;
++    }
++
++    public static String COMMENTS_TASK_STATUS_REF = "comments_task_status";
++    public static String NOT_AUTHORIZED = "401 Unauthorized";
++    public static String RATELIMIT = "RATELIMIT";
++
++    public static String SUBMISSION_KIND = "t3_";
++    public static String COMMENT_KIND = "t1_";
+ }
+diff --git a/RedditApp/RedditReader/app/src/main/res/layout-w900dp/post_list.xml b/RedditApp/RedditReader/app/src/main/res/layout-w900dp/post_list.xml
+index 0ffd109..0a56c4a 100644
+--- a/RedditApp/RedditReader/app/src/main/res/layout-w900dp/post_list.xml
++++ b/RedditApp/RedditReader/app/src/main/res/layout-w900dp/post_list.xml
+@@ -1,10 +1,10 @@
+-<android.support.v4.widget.SwipeRefreshLayout
+-    xmlns:android="http://schemas.android.com/apk/res/android"
+-    android:id="@+id/swiperefresh"
++<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     xmlns:app="http://schemas.android.com/apk/res-auto"
+     xmlns:tools="http://schemas.android.com/tools"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
++    android:layout_marginLeft="16dp"
++    android:layout_marginRight="16dp"
+     android:baselineAligned="false"
+     android:divider="?android:attr/dividerHorizontal"
+     android:orientation="horizontal"
+@@ -17,17 +17,27 @@
+     
+     -->
+ 
+-    <android.support.v7.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
++    <android.support.v4.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
++        xmlns:app="http://schemas.android.com/apk/res-auto"
+         xmlns:tools="http://schemas.android.com/tools"
+-        android:id="@+id/post_list"
+-        android:name="com.bsdsolutions.sanjaydixit.redditreader.PostListFragment"
+-        android:layout_width="@dimen/item_width"
++        android:id="@+id/swiperefresh"
++        android:layout_width="@dimen/two_pane_list_item_width"
+         android:layout_height="match_parent"
+         android:layout_marginLeft="16dp"
+-        android:layout_marginRight="16dp"
+-        app:layoutManager="LinearLayoutManager"
+-        tools:context="com.bsdsolutions.sanjaydixit.redditreader.PostListActivity"
+-        tools:listitem="@layout/post_list_content" />
++        android:layout_marginRight="16dp">
++
++
++        <android.support.v7.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
++            xmlns:tools="http://schemas.android.com/tools"
++            android:id="@+id/post_list"
++            android:name="com.bsdsolutions.sanjaydixit.redditreader.PostListFragment"
++            android:layout_width="match_parent"
++            android:layout_height="match_parent"
++            app:layoutManager="LinearLayoutManager"
++            tools:context="com.bsdsolutions.sanjaydixit.redditreader.PostListActivity"
++            tools:listitem="@layout/post_list_content" />
++
++    </android.support.v4.widget.SwipeRefreshLayout>
+ 
+     <FrameLayout
+         android:id="@+id/post_detail_container"
+@@ -35,4 +45,4 @@
+         android:layout_height="match_parent"
+         android:layout_weight="3" />
+ 
+-</android.support.v4.widget.SwipeRefreshLayout>
+\ No newline at end of file
++</LinearLayout>
+diff --git a/RedditApp/RedditReader/app/src/main/res/layout/post_detail.xml b/RedditApp/RedditReader/app/src/main/res/layout/post_detail.xml
+index 64ab966..a130597 100644
+--- a/RedditApp/RedditReader/app/src/main/res/layout/post_detail.xml
++++ b/RedditApp/RedditReader/app/src/main/res/layout/post_detail.xml
+@@ -1,9 +1,29 @@
+-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+-    xmlns:tools="http://schemas.android.com/tools"
+-    android:id="@+id/post_detail"
+-    style="?android:attr/textAppearanceLarge"
++<?xml version="1.0" encoding="utf-8"?>
++<android.support.design.widget.CoordinatorLayout
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:app="http://schemas.android.com/apk/res-auto"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+-    android:padding="16dp"
+-    android:textIsSelectable="true"
+-    tools:context="com.bsdsolutions.sanjaydixit.redditreader.PostDetailFragment" />
++    android:fitsSystemWindows="true">
++
++    <android.support.design.widget.AppBarLayout
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:theme="@style/AppTheme.AppBarOverlay">
++
++        <android.support.v7.widget.Toolbar
++            android:id="@+id/toolbar"
++            android:layout_width="match_parent"
++            android:layout_height="?attr/actionBarSize"
++            android:background="?attr/colorPrimary"
++            app:popupTheme="@style/AppTheme.PopupOverlay"/>
++
++    </android.support.design.widget.AppBarLayout>
++
++    <FrameLayout
++        android:id="@+id/fragment_container"
++        android:layout_width="match_parent"
++        android:layout_height="match_parent"
++        android:layout_marginTop="?attr/actionBarSize"/>
++
++</android.support.design.widget.CoordinatorLayout>
+\ No newline at end of file
+diff --git a/RedditApp/RedditReader/app/src/main/res/layout/post_list_content.xml b/RedditApp/RedditReader/app/src/main/res/layout/post_list_content.xml
+index cad1716..767af32 100644
+--- a/RedditApp/RedditReader/app/src/main/res/layout/post_list_content.xml
++++ b/RedditApp/RedditReader/app/src/main/res/layout/post_list_content.xml
+@@ -13,8 +13,7 @@
+ 
+     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+         android:layout_width="match_parent"
+-        android:layout_height="match_parent"
+-        android:layout_marginBottom="@dimen/activity_vertical_margin"
++        android:layout_height="wrap_content"
+         android:orientation="vertical">
+ 
+         <LinearLayout
+diff --git a/RedditApp/RedditReader/app/src/main/res/values/colors.xml b/RedditApp/RedditReader/app/src/main/res/values/colors.xml
+index 8637fd9..28d1b06 100644
+--- a/RedditApp/RedditReader/app/src/main/res/values/colors.xml
++++ b/RedditApp/RedditReader/app/src/main/res/values/colors.xml
+@@ -4,4 +4,6 @@
+     <color name="colorPrimaryDark">#303F9F</color>
+     <color name="colorAccent">#FF4081</color>
+     <color name="widgetBackground">#C5CAE9</color>
++    <color name="grey">#cccccc</color>
++    <color name="greyDark">#a0a0a0</color>
+ </resources>
+diff --git a/RedditApp/RedditReader/app/src/main/res/values/dimens.xml b/RedditApp/RedditReader/app/src/main/res/values/dimens.xml
+index d08fd43..bb3ab3d 100644
+--- a/RedditApp/RedditReader/app/src/main/res/values/dimens.xml
++++ b/RedditApp/RedditReader/app/src/main/res/values/dimens.xml
+@@ -3,11 +3,14 @@
+     <dimen name="fab_margin">16dp</dimen>
+     <dimen name="app_bar_height">200dp</dimen>
+     <dimen name="item_width">200dp</dimen>
++    <dimen name="two_pane_list_item_width">400dp</dimen>
+     <dimen name="text_margin">16dp</dimen>
+     <!-- Default screen margins, per the Android Design guidelines. -->
+     <dimen name="activity_horizontal_margin">16dp</dimen>
+     <dimen name="activity_vertical_margin">16dp</dimen>
+     <dimen name="listview_vertical_margin">8dp</dimen>
++    <dimen name="submission_content_text_margin">16dp</dimen>
++    <dimen name="submission_title_vertical_margin">8dp</dimen>
+ 
+     <!--
+ Refer to App Widget Documentation for margin information
+diff --git a/RedditApp/RedditReader/app/src/main/res/values/strings.xml b/RedditApp/RedditReader/app/src/main/res/values/strings.xml
+index f71850d..706f1bb 100644
+--- a/RedditApp/RedditReader/app/src/main/res/values/strings.xml
++++ b/RedditApp/RedditReader/app/src/main/res/values/strings.xml
+@@ -1,4 +1,4 @@
+-<resources>
++<resources xmlns:xliff="http://schemas.android.com/apk/res-auto">
+     <string name="app_name">Reddit Reader</string>
+     <string name="title_post_detail">Post Detail</string>
+     <string name="title_activity_login">Sign in</string>
+@@ -21,6 +21,25 @@
+     <string name="appwidget_text">Reddit Reader</string>
+     <string name="add_widget">Add widget</string>
+     <string name="configure">Configure</string>
+-    <string name="message_internal_error">Internal Error!</string>
++    <string name="message_not_authorized">Application will not be able to access Reddit services without authorization. Please login</string>
++    <string name="message_ratelimit_error">Server asks to wait <xliff:g example="5 minutes" id="wait_time">%1$s</xliff:g> before retrying this action</string>
++    <string name="message_internal_error">Internal error. Please try later</string>
+     <string name="message_no_valid_submissions">No posts to show. Select subreddits.</string>
++        <string name="comment_author_and_score">
++        <xliff:g example="somebody" id="subreddit_title">%1$s</xliff:g> - <xliff:g example="345" id="subreddit_title">%2$s</xliff:g>
++    </string>
++    <string name="collapse_comments_tree_contect_description">Hide this comment and related replies</string>
++    <string name="collapse_comment_contect_description">Hide this comment</string>
++    <string name="expand_comments_tree_contect_description">Show this comment and related replies</string>
++    <string name="expand_comment_contect_description">Show this comment</string>
++    <string name="load_more_comments_contect_description">Load more comments</string>
++    <string name="action_upvote_comment">Upvote</string>
++    <string name="action_undo_upvote_comment">Undo Upvote</string>
++    <string name="action_downvote_comment">Downvote</string>
++    <string name="action_undo_downvote_comment">Undo Downvote</string>
++    <string name="message_server_invalid">The server is not responding</string>
++    <string name="message_local_comments_out_of_sync">Comments appear to be out of sync with Reddit servers. Please reload the comments</string>
++    <string name="action_reply_comment">Reply</string>
++    <string name="activity_comments_list">Comments</string>
++
+ </resources>
+diff --git a/RedditApp/RedditReader/app/src/main/res/values/styles.xml b/RedditApp/RedditReader/app/src/main/res/values/styles.xml
+index 545b9c6..a7f579f 100644
+--- a/RedditApp/RedditReader/app/src/main/res/values/styles.xml
++++ b/RedditApp/RedditReader/app/src/main/res/values/styles.xml
+@@ -16,5 +16,5 @@
+     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+ 
+     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+-
++    <style name="ProgressBar" parent="Widget.AppCompat.ProgressBar" />
+ </resources>

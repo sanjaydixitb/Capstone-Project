@@ -196,7 +196,7 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
             protected Void doInBackground(Credentials... params) {
                 try {
                     AuthenticationManager.get().refreshAccessToken(LoginActivity.CREDENTIALS);
-                } catch (NoSuchTokenException | OAuthException e) {
+                } catch (Exception e) {
                     Log.e(TAG, "Could not refresh access token", e);
                 }
                 return null;
