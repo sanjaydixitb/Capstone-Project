@@ -59,6 +59,7 @@ public class PostDetailFragment extends Fragment {
 
             Activity activity = this.getActivity();
             CollapsingToolbarLayout appBarLayout = (CollapsingToolbarLayout) activity.findViewById(R.id.toolbar_layout);
+            mImageView = (ImageView) activity.findViewById(R.id.detail_image_view);
             final String itemType = mItem.type;
             final String url = mItem.url;
 
@@ -124,7 +125,8 @@ public class PostDetailFragment extends Fragment {
         // Show the dummy content as text in a TextView.
         if (mItem != null) {
             ((TextView) rootView.findViewById(R.id.post_detail)).setText(mItem.title);
-            mImageView = (ImageView) rootView.findViewById(R.id.detail_image_view);
+            if(mImageView == null)
+                mImageView = (ImageView) rootView.findViewById(R.id.detail_image_view);
             if (mItem.image != null && mItem.image.length() > 0 && mImageView != null) {
                 mImageView.setVisibility(View.VISIBLE);
                 mImageView.setOnClickListener(mClickListener);
