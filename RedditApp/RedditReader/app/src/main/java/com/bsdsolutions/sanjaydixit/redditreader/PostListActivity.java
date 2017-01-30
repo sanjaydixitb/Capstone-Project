@@ -177,11 +177,23 @@ public class PostListActivity extends AppCompatActivity implements LoaderManager
                 ArrayList<PostItemList.SinglePost> posts = i.getParcelableArrayListExtra(INTENT_PARCELABLE_EXTRA_KEY);
                 if(posts != null && posts.size() > 0) {
                     //TODO: there's got to be a better way to do this.
-                    Intent intent = new Intent(getApplicationContext(), PostDetailActivity.class);
-                    intent.putExtra(PostDetailFragment.ARG_ITEM, posts.get(0));
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    getApplicationContext().startActivity(intent);
-                    i.removeExtra(INTENT_PARCELABLE_EXTRA_KEY);
+                    boolean isTablet = getResources().getBoolean(R.bool.is_tablet);
+                    if(isTablet) {
+                        Bundle arguments = new Bundle();
+                        arguments.putParcelable(PostDetailFragment.ARG_ITEM, posts.get(0));
+                        PostDetailFragment fragment = new PostDetailFragment();
+                        fragment.setArguments(arguments);
+                        getSupportFragmentManager().beginTransaction()
+                                .replace(R.id.post_detail_container, fragment)
+                                .commit();
+
+                    } else {
+                        Intent intent = new Intent(getApplicationContext(), PostDetailActivity.class);
+                        intent.putExtra(PostDetailFragment.ARG_ITEM, posts.get(0));
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        getApplicationContext().startActivity(intent);
+                        i.removeExtra(INTENT_PARCELABLE_EXTRA_KEY);
+                    }
                 } else {
                     refreshItems(true);
                 }

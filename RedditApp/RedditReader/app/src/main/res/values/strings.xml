@@ -24,4 +24,5 @@
     <string name="message_internal_error">Internal Error!</string>
     <string name="message_no_valid_submissions">No posts to show. Select subreddits.</string>
     <string name="select_post_to_view_details">Select post to view details</string>
+    <bool name="is_tablet">false</bool>
 </resources>
