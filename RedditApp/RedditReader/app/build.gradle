@@ -1,6 +1,14 @@
 apply plugin: 'com.android.application'
 
 android {
+    signingConfigs {
+        config {
+            keyAlias 'MyAndroidKey'
+            keyPassword 'password'
+            storeFile file('/Users/sanjaydixit/Desktop/AndroidNanodegree/Workspace/Capstone-Project/Keystore/keystore.jks')
+            storePassword 'password'
+        }
+    }
     compileSdkVersion 24
     buildToolsVersion "24.0.2"
     defaultConfig {
@@ -10,6 +18,15 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        multiDexEnabled true
+    }
+    signingConfigs {
+        release {
+            storeFile file('../../../Keystore/keystore.jks')
+            keyAlias 'MyAndroidKey'
+            keyPassword 'password'
+            storePassword 'password'
+        }
     }
     buildTypes {
         release {
@@ -23,15 +40,14 @@ android {
         it.buildConfigField 'String', 'REDDIT_APP_SECRET', '"gko_LXELoV07ZBNUXrvWZfzE3al"'
         it.buildConfigField 'String', 'REDDIT_REDIRECT_URL', '"https://github.com/sanjaydixitb/Capstone-Project"'
     }
-
     packagingOptions {
-        pickFirst  'META-INF/license.txt'
-        pickFirst  'META-INF/LICENSE'
+        pickFirst 'META-INF/license.txt'
+        pickFirst 'META-INF/LICENSE'
     }
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(include: ['*.jar'], dir: 'libs')
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
@@ -41,7 +57,7 @@ dependencies {
     compile 'com.android.support:recyclerview-v7:24.2.1'
     compile 'com.android.support:design:24.2.1'
     compile 'com.squareup.picasso:picasso:2.5.2'
-    compile "net.dean.jraw:JRAW:0.9.0"
+    compile 'net.dean.jraw:JRAW:0.9.0'
     compile 'com.google.android.gms:play-services-analytics:10.0.1'
     compile 'com.google.firebase:firebase-ads:10.0.1'
     testCompile 'junit:junit:4.12'
