@@ -49,7 +49,7 @@ public class LoginActivity extends AppCompatActivity{
                     // We've detected the redirect URL
                     onUserChallenge(url, CREDENTIALS);
                 } else if (url.contains("error=")) {
-                    Toast.makeText(LoginActivity.this, "You must press 'allow' to log in with this account", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(LoginActivity.this, R.string.notification_allow_login, Toast.LENGTH_SHORT).show();
                     webView.loadUrl(authorizationUrl.toExternalForm());
                 }
             }
